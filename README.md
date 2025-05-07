@@ -10,3 +10,5 @@ make venv
 # Activate the virtual environment
 conda activate local-mlrun
 ```
+
+If you want to remove the vitual environment you can run `make clean`.

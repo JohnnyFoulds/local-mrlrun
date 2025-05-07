@@ -1,0 +1,8 @@
+kind: project
+spec:
+  source: ''
+  artifact_path: /Users/foulds/code/local-mrlrun/notebooks/artifacts
+  desired_state: online
+  conda: ''
+metadata:
+  name: basic-tests
