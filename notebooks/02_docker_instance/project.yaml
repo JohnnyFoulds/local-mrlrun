@@ -1,0 +1,14 @@
+kind: project
+metadata:
+  name: use-remote
+  created: '2025-05-12T11:04:59.389945'
+spec:
+  functions: []
+  workflows: []
+  artifacts: []
+  desired_state: online
+  build:
+    commands: []
+    requirements: []
+status:
+  state: online

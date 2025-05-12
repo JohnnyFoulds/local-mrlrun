@@ -1,6 +1,7 @@
-mlrun==1.7.2
+#mlrun==1.7.2
+mlrun==1.6.2
 #igz_mgmt
 #apscheduler
-#uvicorn
+#uvicornclear
 grpcio==1.48
 grpcio-tools==1.48
