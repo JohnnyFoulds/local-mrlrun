@@ -49,11 +49,18 @@ sudo helm repo update
 
 ```bash
 # Create a secret for docker-registry
+# sudo kubectl --namespace mlrun create secret docker-registry registry-credentials \
+#     --docker-server https://registry.hub.docker.com/ \
+#     --docker-username shambi \
+#     --docker-password 'Sh!tB@llz' \
+#     --docker-email hfoulds@gmail.com
+
+# log into docker locally
+docker login -u shambi
+
+# create a new secret
 sudo kubectl --namespace mlrun create secret docker-registry registry-credentials \
-    --docker-server https://registry.hub.docker.com/ \
-    --docker-username shambi \
-    --docker-password 'Sh!tB@llz' \
-    --docker-email hfoulds@gmail.com
+    --from-file=/home/johnny/.docker/config.json
 
 # validate the secret
 sudo kubectl get secrets -n mlrun
