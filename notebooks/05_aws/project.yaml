@@ -1,7 +1,10 @@
-spec:
-  desired_state: online
-  conda: ''
-  source: ''
 metadata:
+  created: '2025-06-25T14:49:43.546361'
   name: johannes-was-here
 kind: project
+status:
+  state: online
+spec:
+  desired_state: online
+  source: ''
+  conda: ''
