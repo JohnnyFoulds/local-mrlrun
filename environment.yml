@@ -3,8 +3,10 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.10
+  - python=3.9
   - pip
+  - libprotobuf=3.20.3
+  - protobuf=3.20.3
   - pip:
       - -r requirements_dev.txt
       - -r requirements.txt
