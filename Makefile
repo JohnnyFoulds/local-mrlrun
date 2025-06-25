@@ -4,7 +4,7 @@ SHELL=/bin/bash
 PROJECT_PATH := "."
 VENV_NAME := "local-mlrun"
 
-.PHONY: install-miniconda create-venv
+.PHONY: install-miniconda create-venv clean
 
 
 # install miniconda
@@ -27,3 +27,8 @@ venv: install-miniconda
 	conda env create -f environment.yml || conda env update -f environment.yml; \
 	echo "Setup complete. Copy-paste the following command to finalize the setup:"; \
 	echo "source ~/.bashrc && conda activate $(VENV_NAME)" \
+
+clean: clean
+	@echo "Cleaning up..." && \
+	conda remove --name $(VENV_NAME) --all && \
+	echo "Cleanup complete." \

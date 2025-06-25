@@ -1,0 +1,8 @@
+metadata:
+  name: basic-tests
+kind: project
+spec:
+  conda: ''
+  desired_state: online
+  source: ''
+  artifact_path: /home/johnny/swan/code/local-mrlrun/notebooks/01_basic_tests/artifacts

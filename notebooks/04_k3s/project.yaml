@@ -1,0 +1,11 @@
+kind: project
+spec:
+  conda: ''
+  desired_state: online
+  functions:
+  - url: hub://describe
+    name: describe
+    kind: job
+  source: ''
+metadata:
+  name: hello-project

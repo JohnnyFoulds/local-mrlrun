@@ -1,0 +1,17 @@
+kind: project
+metadata:
+  name: simple-test
+  created: '2025-05-12T11:04:59.389945'
+spec:
+  functions: []
+  workflows: []
+  artifacts: []
+  conda: ''
+  source: ''
+  desired_state: online
+  build:
+    commands: []
+    requirements: []
+  custom_packagers: []
+status:
+  state: online
