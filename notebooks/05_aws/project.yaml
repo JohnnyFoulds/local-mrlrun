@@ -1,10 +1,13 @@
-metadata:
-  created: '2025-06-25T14:49:43.546361'
-  name: johannes-was-here
 kind: project
+metadata:
+  name: johannes-was-here
+  created: '2025-06-25T14:49:43.546361'
+spec:
+  functions: []
+  workflows: []
+  artifacts: []
+  conda: ''
+  source: ''
+  desired_state: online
 status:
   state: online
-spec:
-  desired_state: online
-  source: ''
-  conda: ''
