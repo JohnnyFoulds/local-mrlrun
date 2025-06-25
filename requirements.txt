@@ -7,10 +7,22 @@
 #grpcio==1.48
 #grpcio-tools==1.48
 
-mlrun==1.9.0
+mlrun==1.7.2
+grpcio-tools==1.47.5
+
 #pyarrow==16.1.0
 #v3io-frames==0.10.14
 #orjson==3.10.18
-#PyYAML==6.0.2
+#PyYAML==5.1.2
+
 #grpcio==1.73.0
-grpcio-tools==1.47.5
+#grpcio-tools==1.47.5
+
+
+# # mlrun 1.0.5
+# mlrun==1.0.5
+# click==8.0.0
+# PyYAML==5.3
+# kfp==1.8.5
+# storey==1.0.6
+# grpcio-tools==1.41.1
