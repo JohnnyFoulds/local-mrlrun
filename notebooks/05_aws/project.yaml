@@ -1,0 +1,7 @@
+kind: project
+spec:
+  conda: ''
+  source: ''
+  desired_state: online
+metadata:
+  name: johannes-was-here-foulds
