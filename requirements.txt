@@ -8,9 +8,9 @@
 #grpcio-tools==1.48
 
 # --- 1.7.2 ---
-# mlrun==1.7.2
-# grpcio-tools==1.47.5
-# ---
+mlrun==1.7.2
+grpcio-tools==1.47.5
+# ------------
 
 #pyarrow==16.1.0
 #v3io-frames==0.10.14
@@ -22,8 +22,10 @@
 
 
 # -- 1.0.5 ---
-mlrun==1.0.5
-notebook==6.5.6
+# mlrun==1.0.5
+# notebook==6.5.6
+# ------------
+
 # click==8.0.0
 # PyYAML==5.3
 # kfp==1.8.5
