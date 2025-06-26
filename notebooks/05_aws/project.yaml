@@ -1,7 +1,0 @@
-kind: project
-spec:
-  conda: ''
-  desired_state: online
-  source: ''
-metadata:
-  name: getting-started-bull
