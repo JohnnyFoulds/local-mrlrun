@@ -1,58 +1,7 @@
-kind: project
 metadata:
-  name: johannes-was-here
-  created: '2025-06-26T12:08:47.231544'
+  name: getting-started-bull
 spec:
-  functions:
-  - name: test-function
-    spec:
-      kind: job
-      metadata:
-        name: test-function
-        tag: ''
-        project: johannes-was-here
-      spec:
-        command: ''
-        args: []
-        image: mlrun/mlrun
-        build:
-          functionSourceCode: IyBHZW5lcmF0ZWQgYnkgbnVjbGlvLmV4cG9ydC5OdWNsaW9FeHBvcnRlcgoKaW1wb3J0IG1scnVuCmltcG9ydCBsb2dnaW5nCmltcG9ydCB0aW1lCgojIGNvbmZpZ3VyZSBsb2cgZm9ybWF0CmxvZ2dpbmcuYmFzaWNDb25maWcoCiAgICBsZXZlbD1sb2dnaW5nLklORk8sCiAgICBmb3JtYXQ9JyUoYXNjdGltZSlzICUobGV2ZWxuYW1lKXMgWyUobmFtZSlzXSAlKG1lc3NhZ2UpcycsCiAgICBkYXRlZm10PSclWS0lbS0lZCAlSDolTTolUycKKQoKIyBnZXQgdGhlIGxvZ2dlcgpsb2dnZXIgPSBsb2dnaW5nLmdldExvZ2dlcihfX25hbWVfXykKCnByb2plY3RfbmFtZSA9ICdqb2hhbm5lcy13YXMtaGVyZScKCnByb2plY3QgPSBtbHJ1bi5nZXRfb3JfY3JlYXRlX3Byb2plY3QoCiAgICBwcm9qZWN0X25hbWUsCiAgICBjb250ZXh0PScuLycsCiAgICB1c2VyX3Byb2plY3Q9RmFsc2UpCgpkZWYgdGVsbF90aW1lKGNvbnRleHQ6IG1scnVuLk1MQ2xpZW50Q3R4ID0gTm9uZSk6CiAgICAjbG9nZ2VyLmluZm8oIkNhbiB3ZSB0ZWxsIHRoZSB0aW1lPyIpCiAgICBjdXJyZW50X3RpbWUgPSB0aW1lLnN0cmZ0aW1lKCIlWS0lbS0lZCAlSDolTTolUyIsIHRpbWUubG9jYWx0aW1lKCkpCiAgICBsb2dnZXIuaW5mbyhmIkN1cnJlbnQgdGltZSBpczoge2N1cnJlbnRfdGltZX0iKSAKCiAgICBjb250ZXh0LmxvZ2dlci5pbmZvKGYiQ3VycmVudCB0aW1lIGlzOiB7Y3VycmVudF90aW1lfSIpCiAgICBjb250ZXh0LmxvZ19yZXN1bHQoInJ1bl90aW1lc3RhbXAiLCAiY3VycmVudF90aW1lIikKCiAgICByZXR1cm4gY3VycmVudF90aW1lCgojIyB0ZXN0IHRoZSBmdW5jdGlvbgojdGVsbF90aW1lKCkKCmRlZiBoYW5kbGVyKGNvbnRleHQ6IG1scnVuLk1MQ2xpZW50Q3R4ID0gTm9uZSk6CiAgICBsb2dnZXIuaW5mbygiSGVsbG8gd29ybGQiKQoKICAgIGNvbnRleHQubG9nX3Jlc3VsdCgiaGVsbG8iLCAid29ybGQiKQoKIyBjcmVhdGUgdGhlIGZ1bmN0aW9uIHRvIHBhcmVzZSB0aGUgbm90ZWJvb2sncyBjb2RlCnRlc3RfZnVuY3Rpb24gPSBtbHJ1bi5jb2RlX3RvX2Z1bmN0aW9uKAogICAgJ3Rlc3QtZnVuY3Rpb24nLAogICAga2luZD0nam9iJywKICAgIGltYWdlPSdtbHJ1bi9tbHJ1bicpCgojIHNhdmUgdGhlIGZ1bmN0aW9uIHRvIHRoZSBwcm9qZWN0CnByb2plY3Quc2V0X2Z1bmN0aW9uKHRlc3RfZnVuY3Rpb24sICd0ZXN0LWZ1bmN0aW9uJykKcHJvamVjdC5zYXZlKCkKCiMgbW91bnQgdGhlIGZ1bmN0aW9uCnRlc3RfZnVuY3Rpb24uYXBwbHkobWxydW4ucGxhdGZvcm1zLmF1dG9fbW91bnQoKSkKCiNoYW5kbGVyID0gJ3RlbGxfdGltZScKaGFuZGxlciA9ICdoYW5kbGVyJwoKIyBsb2NhbCBydW4KdGVzdF9ydW4gPSB0ZXN0X2Z1bmN0aW9uLnJ1bigKICAgIGhhbmRsZXI9aGFuZGxlciwKICAgICNwYXJhbXM9e30sCiAgICBsb2NhbD1UcnVlKQoKIyB0ZXN0X2Z1bmN0aW9uLmRlcGxveSgpCgojIHRlc3RfcnVuID0gdGVzdF9mdW5jdGlvbi5ydW4oCiMgICAgIGhhbmRsZXI9J3RlbGxfdGltZScsCiMgICAgIHBhcmFtcz17fSwKIyAgICAgbG9jYWw9RmFsc2UpCgo=
-          commands: []
-          code_origin: git@github.com:JohnnyFoulds/local-mrlrun.git#bb0c68a08d68027abd5daf8a5f488b14a05eec60:test-function.ipynb
-          origin_filename: test-function.ipynb
-        entry_points:
-          tell_time:
-            name: tell_time
-            doc: ''
-            parameters:
-            - name: context
-              type: MLClientCtx
-              default: null
-            outputs:
-            - default: ''
-            lineno: 24
-          handler:
-            name: handler
-            doc: ''
-            parameters:
-            - name: context
-              type: MLClientCtx
-              default: null
-            outputs:
-            - default: ''
-            lineno: 37
-        description: ''
-        default_handler: ''
-        disable_auto_mount: false
-        env: []
-        preemption_mode: prevent
-        affinity: null
-        tolerations: null
-        security_context: {}
-      verbose: false
-  workflows: []
-  artifacts: []
   source: ''
   desired_state: online
-status:
-  state: online
+  conda: ''
+kind: project
