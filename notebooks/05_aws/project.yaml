@@ -1,9 +1,45 @@
 kind: project
 metadata:
-  name: johannes-was-here
-  created: '2025-06-25T14:49:43.546361'
+  name: johannes-was-here-foulds
+  created: '2025-06-26T11:37:35.248377'
 spec:
-  functions: []
+  functions:
+  - name: test-function
+    spec:
+      kind: job
+      metadata:
+        name: test-function
+        tag: ''
+        project: johannes-was-here-foulds
+      spec:
+        command: ''
+        args: []
+        image: mlrun/mlrun
+        build:
+          functionSourceCode: IyBHZW5lcmF0ZWQgYnkgbnVjbGlvLmV4cG9ydC5OdWNsaW9FeHBvcnRlcgoKaW1wb3J0IG1scnVuCmltcG9ydCBsb2dnaW5nCmltcG9ydCB0aW1lCgojIGNvbmZpZ3VyZSBsb2cgZm9ybWF0CmxvZ2dpbmcuYmFzaWNDb25maWcoCiAgICBsZXZlbD1sb2dnaW5nLklORk8sCiAgICBmb3JtYXQ9JyUoYXNjdGltZSlzICUobGV2ZWxuYW1lKXMgWyUobmFtZSlzXSAlKG1lc3NhZ2UpcycsCiAgICBkYXRlZm10PSclWS0lbS0lZCAlSDolTTolUycKKQoKIyBnZXQgdGhlIGxvZ2dlcgpsb2dnZXIgPSBsb2dnaW5nLmdldExvZ2dlcihfX25hbWVfXykKCnByb2plY3RfbmFtZSA9ICdqb2hhbm5lcy13YXMtaGVyZScKCnByb2plY3QgPSBtbHJ1bi5nZXRfb3JfY3JlYXRlX3Byb2plY3QoCiAgICBwcm9qZWN0X25hbWUsCiAgICBjb250ZXh0PScuLycsCiAgICB1c2VyX3Byb2plY3Q9VHJ1ZSkKCmRlZiB0ZWxsX3RpbWUoY29udGV4dDogbWxydW4uTUxDbGllbnRDdHggPSBOb25lKToKICAgICNsb2dnZXIuaW5mbygiQ2FuIHdlIHRlbGwgdGhlIHRpbWU/IikKICAgIGN1cnJlbnRfdGltZSA9IHRpbWUuc3RyZnRpbWUoIiVZLSVtLSVkICVIOiVNOiVTIiwgdGltZS5sb2NhbHRpbWUoKSkKICAgIGxvZ2dlci5pbmZvKGYiQ3VycmVudCB0aW1lIGlzOiB7Y3VycmVudF90aW1lfSIpIAoKICAgIGNvbnRleHQubG9nZ2VyLmluZm8oZiJDdXJyZW50IHRpbWUgaXM6IHtjdXJyZW50X3RpbWV9IikKICAgIGNvbnRleHQubG9nX3Jlc3VsdCgicnVuX3RpbWVzdGFtcCIsICJjdXJyZW50X3RpbWUiKQoKICAgIHJldHVybiBjdXJyZW50X3RpbWUKCiMjIHRlc3QgdGhlIGZ1bmN0aW9uCiN0ZWxsX3RpbWUoKQoKIyBjcmVhdGUgdGhlIGZ1bmN0aW9uIHRvIHBhcmVzZSB0aGUgbm90ZWJvb2sncyBjb2RlCnRlc3RfZnVuY3Rpb24gPSBtbHJ1bi5jb2RlX3RvX2Z1bmN0aW9uKAogICAgJ3Rlc3QtZnVuY3Rpb24nLAogICAga2luZD0nam9iJywKICAgIGltYWdlPSdtbHJ1bi9tbHJ1bicpCgojIHNhdmUgdGhlIGZ1bmN0aW9uIHRvIHRoZSBwcm9qZWN0CnByb2plY3Quc2V0X2Z1bmN0aW9uKHRlc3RfZnVuY3Rpb24sICd0ZXN0LWZ1bmN0aW9uJykKcHJvamVjdC5zYXZlKCkKCiMgbW91bnQgdGhlIGZ1bmN0aW9uCnRlc3RfZnVuY3Rpb24uYXBwbHkobWxydW4ucGxhdGZvcm1zLmF1dG9fbW91bnQoKSkKCiMgbG9jYWwgcnVuCnRlc3RfcnVuID0gdGVzdF9mdW5jdGlvbi5ydW4oCiAgICBoYW5kbGVyPSd0ZWxsX3RpbWUnLAogICAgcGFyYW1zPXt9LAogICAgbG9jYWw9VHJ1ZSkKCg==
+          commands: []
+          code_origin: git@github.com:JohnnyFoulds/local-mrlrun.git#9c324867d2afc640ab0bb3bda9a9b598b7a6ac4d:test-function.ipynb
+          origin_filename: test-function.ipynb
+        entry_points:
+          tell_time:
+            name: tell_time
+            doc: ''
+            parameters:
+            - name: context
+              type: MLClientCtx
+              default: null
+            outputs:
+            - default: ''
+            lineno: 24
+        description: ''
+        default_handler: ''
+        disable_auto_mount: false
+        env: []
+        preemption_mode: prevent
+        affinity: null
+        tolerations: null
+        security_context: {}
+      verbose: false
   workflows: []
   artifacts: []
   conda: ''
