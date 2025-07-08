@@ -28,7 +28,7 @@ venv: install-miniconda
 	echo "Setup complete. Copy-paste the following command to finalize the setup:"; \
 	echo "source ~/.bashrc && conda activate $(VENV_NAME)" \
 
-clean: clean
+clean: 
 	@echo "Cleaning up..." && \
 	conda remove --name $(VENV_NAME) --all && \
 	echo "Cleanup complete." \
