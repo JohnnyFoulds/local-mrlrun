@@ -1,7 +1,7 @@
+kind: project
 metadata:
   name: mlrun-demo-johannes
 spec:
-  desired_state: online
   source: ''
+  desired_state: online
   conda: ''
-kind: project
