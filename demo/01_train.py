@@ -1,8 +1,10 @@
-import mlrun
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 import joblib
+import mlrun
+import mlrun.feature_store as fstore
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
 
 def train_model(context):
     data_uri = str(context.get_input("dataset"))
