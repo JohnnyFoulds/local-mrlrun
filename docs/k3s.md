@@ -142,3 +142,39 @@ Prometheus UI is available at:
 
 Happy MLOPSing!!! :]
 ```
+
+## NVIDIA Container Runtime
+
+### 1. Install the nvidia-container package repository 
+
+```bash
+# Configure the production repository
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg \
+  && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+# Update the packages list from the repository
+sudo apt-get update
+
+# Install the NVIDIA Container Toolkit packages
+export NVIDIA_CONTAINER_TOOLKIT_VERSION=1.17.8-1
+  sudo apt-get install -y \
+      nvidia-container-toolkit=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      nvidia-container-toolkit-base=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      libnvidia-container-tools=${NVIDIA_CONTAINER_TOOLKIT_VERSION} \
+      libnvidia-container1=${NVIDIA_CONTAINER_TOOLKIT_VERSION}
+
+# look at existing packages
+#sudo apt-cache search nvidia | grep -P '^nvidia-(driver-)?[0-9]+\s'
+#sudo apt-cache search cuda-drivers-fabricmanager
+
+# Install the nvidia container runtime packages
+sudo apt install -y nvidia-container-runtime cuda-drivers-fabricmanager-550
+
+# restart the k3s service
+sudo systemctl restart k3s
+
+# Confirm that the nvidia container runtime has been found by k3s
+sudo grep nvidia /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+```
