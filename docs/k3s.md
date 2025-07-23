@@ -177,4 +177,39 @@ sudo systemctl restart k3s
 
 # Confirm that the nvidia container runtime has been found by k3s
 sudo grep nvidia /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+
+# Deploy Nvidia Device Plugin [A]
+sudo kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.13.0/nvidia-device-plugin.yml
+
+# Verify GPU Availability
+sudo kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu"
+## above step did not [A]
+
+# Docker Debugging [B]
+nvidia-ctk runtime configure --runtime=docker
+systemctl restart docker
+
+sudo docker run --rm --gpus all nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 nvidia-smi
+
+# containerd Debugging [C]
+sudo ctr image pull docker.io/nvidia/cuda:12.4.1-base-ubuntu22.04
+
+sudo ctr run --rm -t \
+  --runc-binary=/usr/bin/nvidia-container-runtime \
+  --env NVIDIA_VISIBLE_DEVICES=all \
+  docker.io/nvidia/cuda:12.4.1-base-ubuntu22.04 \
+  cuda-12.4.1-base-ubuntu22.04 nvidia-smi
+
+# Add the NVIDIA Helm repository. [D]
+sudo helm repo add nvidia https://nvidia.github.io/gpu-operator
+
+# Update the repository
+sudo helm repo update
+
+# Install GPU operator
+sudo helm install --kubeconfig /etc/rancher/k3s/k3s.yaml --wait --generate-name nvidia/gpu-operator
+
+# Verify the deployment
+sudo kubectl get pods | grep nvidia
+sudo kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu"
 ```
