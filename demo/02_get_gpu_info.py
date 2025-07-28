@@ -15,7 +15,7 @@ def get_gpu_info(context):
             'memory_used': gpu.memoryUsed,
         })
 
-    print(f"GPU Info v4: {gpu_info}")
+    print(f"GPU Info v5.f.u: {gpu_info}")
     context.logger.info(f"GPU Info: {gpu_info}")
 
     # execute the nvidia-smi command on the cli to get detailed GPU info

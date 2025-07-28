@@ -1,0 +1,7 @@
+kind: project
+spec:
+  conda: ''
+  desired_state: online
+  source: ''
+metadata:
+  name: llm-serving-johannes
