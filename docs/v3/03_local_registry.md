@@ -19,6 +19,12 @@ sudo kubectl create namespace mlrun
 
 # CRITICAL STEP: Label the namespace to enable automatic CA injection
 sudo kubectl label namespace mlrun trust.cert-manager.io/inject=true  
+
+sudo kubectl get secret ca-key-pair -n cert-manager -o jsonpath='{.data.ca\.crt}' | base64 -d > ca.crt
+
+sudo kubectl create configmap ca-certificates \
+  --from-file=ca-certificates.crt=ca.crt \
+  -n mlrun
 ```
 
 ## Create Secrets
@@ -38,19 +44,13 @@ cat > registry-certificate.yaml <<EOF
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: registry-certificate
+  name: registry-service-cert
   namespace: mlrun
 spec:
-  # The name of the secret where the certificate will be stored
   secretName: registry-tls
-  
-  # Reference the ClusterIssuer we created in Step 2
   issuerRef:
     name: selfsigned-ca
     kind: ClusterIssuer
-
-  # The domain names the certificate should be valid for.
-  # These match the Kubernetes service names.
   dnsNames:
   - registry-service
   - registry-service.mlrun
@@ -80,6 +80,10 @@ curl -k https://dragon:30500/v2/
 ```
 
 ### Test Pod
+
+```bash
+#sudo kubectl exec -it nginx -- curl --insecure -v https://registry-service.mlrun.svc.cluster.local:5000/v2/
+```
 
 ```bash
 sudo kubectl run -n mlrun test-shell \
