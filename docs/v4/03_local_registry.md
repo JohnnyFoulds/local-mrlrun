@@ -89,7 +89,7 @@ sudo tee /etc/rancher/k3s/registries.yaml > /dev/null <<EOF
 mirrors:
   "registry-service.mlrun.svc.cluster.local":
     endpoint:
-      - "http://registry-service.mlrun.svc.cluster.local"
+      - "http://dragon:30500"
 EOF
 
 sudo systemctl restart k3s
