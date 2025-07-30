@@ -45,6 +45,13 @@ docker login localhost:6500
 ## Create Secret for MLRun
 
 ```bash
+vi /home/johnny/.docker/config.json
+
+# add `"insecure-registries": ["dragon:6500", "dragon.lan:6500"]` before the last `}`
+```
+
+
+```bash
 # delete the old secret
 sudo kubectl delete secret registry-credentials -n mlrun
 
@@ -124,6 +131,28 @@ sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml -n mlrun set env deployment/
 sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml -n mlrun set env deployment/mlrun-api-worker \
   MLRUN_HTTPDB__BUILDER__INSECURE_PULL_REGISTRY_MODE=enabled \
   MLRUN_HTTPDB__BUILDER__INSECURE_PUSH_REGISTRY_MODE=enabled
+
+
+# sudo kubectl -n mlrun patch deployment nuclio-dashboard --type=strategic --patch \
+# '{"spec":{"template":{"spec":{"containers":[{"name":"nuclio-dashboard","args":["controller","--insecure-registries","dragon:6500"]}]}}}}'
+
+# sudo helm template mlrun-ce mlrun-ce/mlrun-ce \
+#   --kubeconfig /etc/rancher/k3s/k3s.yaml \
+#   --namespace mlrun \
+#   --set 'nuclio.controller.insecureRegistries[0]=dragon:6500' \
+#   --set 'nuclio.dashboard.insecureRegistries[0]=dragon:6500' \
+# | grep "dragon:6500"
+
+# sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml -n mlrun patch configmap nuclio-platform-config --type merge -p \
+# '{"data":{"platform.yaml":"logger:\n  functions:\n  - level: debug\n    sink: myStdoutLoggerSink\n  sinks:\n    myStdoutLoggerSink:\n      attributes:\n        encoding: console\n        timeFieldEncoding: iso8601\n        timeFieldName: time\n      kind: stdout\n  system:\n  - level: debug\n    sink: myStdoutLoggerSink\nregistry:\n  insecure_registries:\n  - dragon:6500\n"}}'
+
+# sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml -n mlrun rollout restart deployment/nuclio-controller
+# sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml -n mlrun rollout restart deployment/nuclio-dashboard
+
+# sudo kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml -n mlrun patch deployment nuclio-dashboard \
+# --type=strategic -p \
+# '{"spec":{"template":{"spec":{"containers":[{"name":"nuclio-dashboard","env":[{"name":"NUCLIO_PLATFORM_REGISTRY_INSECURE_REGISTRIES_0","value":"dragon:6500"}]}]}}}}'
+
 
 sudo tee /etc/rancher/k3s/registries.yaml > /dev/null <<EOF
 mirrors:

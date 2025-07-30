@@ -93,6 +93,7 @@ sudo kubectl get pods -n mlrun -w
 If something goes wrong, you can delete the namespace and start over.
 
 ```bash
+sudo helm -n mlrun --kubeconfig /etc/rancher/k3s/k3s.yaml uninstall mlrun-ce
 sudo kubectl delete namespace mlrun
 
 # extreme measure
