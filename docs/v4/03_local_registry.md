@@ -57,7 +57,7 @@ Inside the pod:
 
 ```bash
 apk add --no-cache curl
-curl http://registry-service.mlrun.svc.cluster.local:5000/v2/ -u mlrun:mlpass
+curl http://registry-service.mlrun.svc.cluster.local/v2/ -u mlrun:mlpass
 ```
 
 ## Worth a try
@@ -65,13 +65,37 @@ curl http://registry-service.mlrun.svc.cluster.local:5000/v2/ -u mlrun:mlpass
 source: https://github.com/yonishelach/nvidia-data-flywheel/blob/78d08369ecbb6a6772444cae65d5a7c51160e227/scripts/mlrun.sh#L43
 
 ```bash
-  kubectl create configmap registry-config \
+sudo kubectl create configmap registry-config \
     --namespace=mlrun \
     --from-literal=insecure_pull_registry_mode=enabled \
     --from-literal=insecure_push_registry_mode=enabled
 ```
 
-# Local Imags
+Hack...
+
+```bash
+# Set the correct variable on the chief
+sudo kubectl -n mlrun set env deployment/mlrun-api-chief \
+  MLRUN_HTTPDB__BUILDER__INSECURE_PULL_REGISTRY_MODE=enabled \
+  MLRUN_HTTPDB__BUILDER__INSECURE_PUSH_REGISTRY_MODE=enabled
+
+# Set the correct variable on the worker
+sudo kubectl -n mlrun set env deployment/mlrun-api-worker \
+  MLRUN_HTTPDB__BUILDER__INSECURE_PULL_REGISTRY_MODE=enabled \
+  MLRUN_HTTPDB__BUILDER__INSECURE_PUSH_REGISTRY_MODE=enabled
+
+
+sudo tee /etc/rancher/k3s/registries.yaml > /dev/null <<EOF
+mirrors:
+  "registry-service.mlrun.svc.cluster.local":
+    endpoint:
+      - "http://registry-service.mlrun.svc.cluster.local"
+EOF
+
+sudo systemctl restart k3s
+```
+
+## Local Images
 
 ```bash
 ``bash
@@ -82,7 +106,6 @@ docker rmi mlrun/mlrun-gpu:1.9.1-py39
 docker rmi dragon:30500/mlrun/mlrun-gpu:1.9.1-py39
 
 # verify push
-curl http://dragon:6500/v2/_catalog
-curl http://dragon:6500/v2/mlrun/mlrun-gpu/tags/list
-```
+curl http://dragon:30500/v2/_catalog -u mlrun:mlpass
+curl http://dragon:30500/v2/mlrun/mlrun-gpu/tags/list -u mlrun:mlpass
 ```
