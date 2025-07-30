@@ -1,38 +1,5 @@
 # Local Docker Registry
 
-## Create Certificates
-
-```bash
-# Create a directory for the certs
-mkdir -p /home/johnny/certs/CA
-
-# Create a private key
-openssl genrsa -out /home/johnny/certs/domain.key 4096
-
-# Create a certificate signing request
-openssl req -new -key /home/johnny/certs/domain.key \
-  -out /home/johnny/certs/domain.csr \
-  -subj "/C=US/ST=CA/L=PaloAlto/O=IT/CN=registry.mlrun.svc.cluster.local"
-
-# Create SAN config file
-cat > /home/johnny/certs/domain.ext <<EOF
-subjectAltName = @alt_names
-
-[alt_names]
-DNS.1 = dragon
-DNS.2 = registry
-DNS.3 = registry.mlrun
-DNS.4 = registry.mlrun.svc
-DNS.5 = registry.mlrun.svc.cluster.local
-EOF
-
-# Self-sign the certificate with the SAN extension
-openssl x509 -req -in /home/johnny/certs/domain.csr \
-  -signkey /home/johnny/certs/domain.key \
-  -out /home/johnny/certs/domain.crt \
-  -days 365 -sha256 -extfile /home/johnny/certs/domain.ext
-```
-
 ## Create Password
 
 ```bash
@@ -49,22 +16,50 @@ docker run \
 ```bash
 # Create a namespace for MLRun
 sudo kubectl create namespace mlrun
+
+# CRITICAL STEP: Label the namespace to enable automatic CA injection
+sudo kubectl label namespace mlrun trust.cert-manager.io/inject=true  
 ```
 
-## Crete Secrets
+## Create Secrets
 
 ```bash
-# TLS cert and key
-sudo kubectl create secret tls registry-tls \
-  --cert=/home/johnny/certs/domain.crt \
-  --key=/home/johnny/certs/domain.key \
+# Create the Kubernetes secret for authentication from the htpasswd file
+sudo kubectl create secret generic registry-auth \
+  --from-file=htpasswd=/home/johnny/auth/htpasswd \
   -n mlrun
+```
 
-# htpasswd file
-sudo kubectl create secret tls registry-tls \
-  --cert=/home/johnny/certs/domain.crt \
-  --key=/home/johnny/certs/domain.key \
-  -n mlrun 
+## Request Certificate
+
+```bash
+# Create a file named registry-certificate.yaml
+cat > registry-certificate.yaml <<EOF
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: registry-certificate
+  namespace: mlrun
+spec:
+  # The name of the secret where the certificate will be stored
+  secretName: registry-tls
+  
+  # Reference the ClusterIssuer we created in Step 2
+  issuerRef:
+    name: selfsigned-ca
+    kind: ClusterIssuer
+
+  # The domain names the certificate should be valid for.
+  # These match the Kubernetes service names.
+  dnsNames:
+  - registry-service
+  - registry-service.mlrun
+  - registry-service.mlrun.svc
+  - registry-service.mlrun.svc.cluster.local
+EOF
+
+# Request the certificate
+sudo kubectl apply -f registry-certificate.yaml
 ```
 
 ## Deploy Registry
@@ -97,5 +92,5 @@ Inside the pod:
 
 ```bash
 apk add --no-cache curl
-curl https://registry.mlrun.svc.cluster.local:5000/v2/
+curl https://registry-service.mlrun.svc.cluster.local:5000/v2/
 ```
