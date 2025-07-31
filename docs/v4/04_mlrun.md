@@ -30,7 +30,7 @@ sudo kubectl --namespace mlrun create secret docker-registry registry-credential
 sudo kubectl get secrets -n mlrun
 ```
 
-## Install MLRun
+## Deploy MLRun
 
 To install the chart with the release name `mlrun-ce` use the following command.
 > `global.externalHostAddress` is the IP address of the host machine.
@@ -44,6 +44,7 @@ helm --namespace mlrun \
     --set global.registry.secretName=registry-credentials \
     --set global.externalHostAddress=192.168.1.184 \
     --set nuclio.dashboard.externalIPAddresses=192.168.1.184 \
+    --set v3io.enabled=true \
     mlrun-ce/mlrun-ce
 ```
 
@@ -52,3 +53,13 @@ In a separate terminal progress can be viewed with the following command:
 ```bash
 sudo kubectl get pods -n mlrun -w
 ``` 
+
+## Nuclio Problem
+
+```bash
+sudo helm get values mlrun-ce -n mlrun --kubeconfig /etc/rancher/k3s/k3s.yaml
+
+sudo kubectl get daemonset -n mlrun --kubeconfig /etc/rancher/k3s/k3s.yaml | grep v3io
+
+# sudo helm show values mlrun-ce/mlrun-ce --kubeconfig /etc/rancher/k3s/k3s.yaml | grep -C 5 "v3io:"
+```

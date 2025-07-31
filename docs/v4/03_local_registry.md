@@ -74,12 +74,12 @@ sudo kubectl create configmap registry-config \
 Hack...
 
 ```bash
-# Set the correct variable on the chief
+# ❗️SKIP: Set the correct variable on the chief
 sudo kubectl -n mlrun set env deployment/mlrun-api-chief \
   MLRUN_HTTPDB__BUILDER__INSECURE_PULL_REGISTRY_MODE=enabled \
   MLRUN_HTTPDB__BUILDER__INSECURE_PUSH_REGISTRY_MODE=enabled
 
-# Set the correct variable on the worker
+# ❗️SKIP: Set the correct variable on the worker
 sudo kubectl -n mlrun set env deployment/mlrun-api-worker \
   MLRUN_HTTPDB__BUILDER__INSECURE_PULL_REGISTRY_MODE=enabled \
   MLRUN_HTTPDB__BUILDER__INSECURE_PUSH_REGISTRY_MODE=enabled
