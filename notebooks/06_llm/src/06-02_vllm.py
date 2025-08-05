@@ -2,6 +2,7 @@ import json
 import os
 
 import mlrun
+import torch
 from vllm import LLM, SamplingParams
 
 
@@ -14,3 +15,17 @@ def init_context(context: mlrun.MLClientCtx):
 def vllm_batch(context: mlrun.MLClientCtx, event):
     #event_json = json.loads(event)
     print(f"Received event: {event}")
+    
+    # setting device on GPU if available, else CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
+    print()
+
+    #Additional Info when using cuda
+    if device.type == 'cuda':
+        print(torch.cuda.get_device_name(0))
+        print('Memory Usage:')
+        print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
+        print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
+
+    return f"Device: {device}, Model ID: {os.environ['MODEL_ID']}, Cache Directory: {os.environ['CACHE_DIR']}"
