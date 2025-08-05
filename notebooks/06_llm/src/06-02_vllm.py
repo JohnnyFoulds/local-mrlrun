@@ -1,5 +1,6 @@
 import json
 import os
+from time import sleep
 
 import mlrun
 import torch
@@ -15,6 +16,9 @@ def init_context(context: mlrun.MLClientCtx):
 def vllm_batch(context: mlrun.MLClientCtx, event):
     #event_json = json.loads(event)
     print(f"Received event: {event}")
+
+    # while True:
+    #     sleep(1)
     
     # setting device on GPU if available, else CPU
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -28,4 +32,4 @@ def vllm_batch(context: mlrun.MLClientCtx, event):
         print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
         print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
 
-    return f"Device: {device}, Model ID: {os.environ['MODEL_ID']}, Cache Directory: {os.environ['CACHE_DIR']}"
+    return f"Device: {device}, Model ID: {os.environ['MODEL_ID']}, Cache Directory: {os.environ['CACHE_DIR']}, GPU Available: {torch.cuda.is_available()}"
