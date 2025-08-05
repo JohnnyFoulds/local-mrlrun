@@ -44,7 +44,6 @@ helm --namespace mlrun \
     --set global.registry.secretName=registry-credentials \
     --set global.externalHostAddress=192.168.1.184 \
     --set nuclio.dashboard.externalIPAddresses=192.168.1.184 \
-    --set v3io.enabled=true \
     mlrun-ce/mlrun-ce
 ```
 
