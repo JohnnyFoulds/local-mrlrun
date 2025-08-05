@@ -1,13 +1,17 @@
-import mlrun
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
 import joblib
+import mlrun
+import mlrun.feature_store as fstore
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
 
 def train_model(context):
+    print("Training model...")
     data_uri = str(context.get_input("dataset"))
     print(data_uri)
-    #df = mlrun.get_dataitem(url=data_uri).as_df()
+    df = mlrun.get_dataitem(url=data_uri).as_df()
+    print(df.head())
     
     # X = df.drop("label", axis=1)
     # y = df["label"]
