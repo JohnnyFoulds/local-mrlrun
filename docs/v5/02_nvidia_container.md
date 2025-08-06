@@ -31,7 +31,7 @@ sudo systemctl restart k3s
 sudo grep nvidia /var/lib/rancher/k3s/agent/etc/containerd/config.toml
 
 # Deploy Nvidia Device Plugin [A]
-#?? maybe ?? kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.13.0/nvidia-device-plugin.yml
+kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.13.0/nvidia-device-plugin.yml
 
 # Docker Debugging [B]
 sudo nvidia-ctk runtime configure --runtime=docker
@@ -55,13 +55,11 @@ helm repo add nvidia https://nvidia.github.io/gpu-operator
 helm repo update
 
 # Install GPU operator
-helm install --wait --generate-name nvidia/gpu-operator
+sudo helm install --wait --generate-name nvidia/gpu-operator
 
 # Verify the deployment
-kubectl get pods | grep nvidia
-#watch -t 'kubectl get pods | grep nvidia'
-
-kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu"
+sudo kubectl get pods | grep nvidia
+sudo kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable.nvidia\.com/gpu"
 ```
 
 ## Additional Containerd Configuration
@@ -69,17 +67,30 @@ kubectl get nodes "-o=custom-columns=NAME:.metadata.name,GPU:.status.allocatable
 ```bash
 sudo cp /var/lib/rancher/k3s/agent/etc/containerd/config.toml /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
 
-# Add the NVIDIA runtime to the containerd configuration
 sudo tee -a /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl > /dev/null <<'EOF'
 
 [plugins."io.containerd.cri.v1.runtime".containerd]
   default_runtime_name = "nvidia"
 EOF
 
-# show the changes
 sudo cat /var/lib/rancher/k3s/agent/etc/containerd/config.toml.tmpl
 
 sudo systemctl restart k3s
 
 sudo grep "default_runtime_name" /var/lib/rancher/k3s/agent/etc/containerd/config.toml
+```
+
+```bash
+# cat <<EOF | sudo kubectl apply -f -
+# apiVersion: node.k8s.io/v1
+# kind: RuntimeClass
+# metadata:
+#   name: nvidia
+# handler: nvidia
+# EOF
+
+# sudo sed -i '/\[plugins\."io.containerd.grpc.v1.cri"\.containerd\]/a\
+#   default_runtime_name = "nvidia"' /etc/containerd/config.toml
+
+# sudo systemctl restart containerd
 ```
