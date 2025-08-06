@@ -1,7 +1,7 @@
 kind: project
 spec:
-  source: ''
-  conda: ''
   desired_state: online
+  conda: ''
+  source: ''
 metadata:
   name: llm-batch-johannes
