@@ -5,4 +5,4 @@ RUN pip install --upgrade pip \
     numpy==1.26.4 \
     pandas==2.1.4 \
     flashinfer-python==0.2.10 \
-     vllm==0.10.0 
+    vllm[runai]==0.10.0

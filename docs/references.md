@@ -32,6 +32,7 @@
 - [Loading models with Run:ai Model Streamer](https://docs.vllm.ai/en/stable/models/extensions/runai_model_streamer.html)
 - [Stream Model From AWS S3](https://github.com/run-ai/runai-model-streamer/blob/master/examples/stream_safetensors_from_s3.ipynb)
 - [vLLM Recipes](https://docs.vllm.ai/projects/recipes/en/latest/)
+- [Loading models with CoreWeave's Tensorizer](https://github.com/vllm-project/vllm/blob/458e74eb907f96069e6d8a4f3c9f457001fef2ea/docs/models/extensions/tensorizer.md)
 
 ## LLM Models
 
