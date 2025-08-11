@@ -3,6 +3,7 @@
 ## Hugging Face
 
 - [Cache management](https://huggingface.co/docs/datasets/en/cache)
+- [Download an entire repository](https://huggingface.co/docs/huggingface_hub/en/guides/download#download-an-entire-repository)
 
 ## MLRun
 
@@ -11,6 +12,7 @@
 - [Quick start tutorial for machine learning](https://docs.mlrun.org/en/latest/tutorials/01-mlrun-basics.html)
 - [Train, compare, and register models](https://docs.mlrun.org/en/latest/tutorials/02-model-training.html)
 - [Create, save, and use projects](https://docs.mlrun.org/en/stable/projects/create-project.html)
+- [Serving gen AI models](https://docs.mlrun.org/en/v1.9.1/genai/deployment/genai_serving.html)
 
 ### Setup
 
