@@ -1,0 +1,10 @@
+FROM dragon:30500/mlrun/mlrun:1.9.1
+
+RUN pip install --upgrade pip \
+ && pip install --no-cache-dir \
+    numpy==1.26.4 \
+    pandas==2.1.4 \
+    mlrun==1.9.1 \
+    torch==2.7.1 \
+    torchaudio==2.7.1 \
+    torchvision==0.22.1
