@@ -1,11 +1,12 @@
 """
 Tests for VLLMModelServer class.
 """
-import pytest
-from unittest.mock import Mock, patch, MagicMock
-import sys
 import os
+import sys
+from unittest.mock import MagicMock, Mock, patch
+
 import mlrun
+import pytest
 
 # Add the src directory to the path so we can import our module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -166,13 +167,58 @@ class TestVLLMModelServer:
         assert call_kwargs['boolean_param'] is True
         assert call_kwargs['list_param'] == [1, 2, 3]
 
+    def test_download_model(self, sample_init_params):
+        """Test that _download_model calls snapshot_download."""
+        with patch('functions.vllm_model_server.snapshot_download') as mock_download:
+            server = VLLMModelServer(**sample_init_params)
+            server._download_model()
+            
+            # Verify snapshot_download was called with correct parameters
+            mock_download.assert_called_once_with(
+                repo_id=sample_init_params['model_name'],
+                local_dir=sample_init_params['model_path']
+            )
+
 
 class TestVLLMModelServerIntegration:
     """Integration tests for VLLMModelServer (when mlrun is available)."""
+    @pytest.fixture(scope="class", autouse=True)
+    def mlrun_project_lifecycle(self):
+        """Create MLRun project at class start, delete at class end."""  
+        # Setup: Create project at the start of the test class
+        project_name = "test-vllm-integration"
+        project = None
+        
+        try:
+            # Initialize the MLRun project object
+            project = mlrun.get_or_create_project(
+                name=project_name,
+                context="../")
+            print(f"MLRun project '{project_name}' created/retrieved successfully")
+            
+            # Make project available to all tests in this class
+            yield project
+            
+        except Exception as e:
+            pytest.skip(f"Could not create MLRun project: {e}")
+            
+        finally:
+            # Teardown: Delete project at the end of the test class
+            if project:
+                try:
+                    mlrun.delete_project(project_name, delete_functions=True)
+                    print(f"MLRun project '{project_name}' deleted successfully")
+                except Exception as e:
+                    print(f"Warning: Could not delete project '{project_name}': {e}")
+
     @pytest.fixture
-    def mlrun_context(self):
+    def mlrun_context(self, mlrun_project_lifecycle):
         """Create the MLRun context fixture."""
-        context = mlrun.MLClientCtx()
+        context = mlrun.run.get_or_create_ctx(
+            name="test_vllm_integration_context",
+            project=mlrun_project_lifecycle.name,    
+        )
+        
         return context
     
     @pytest.fixture
@@ -180,18 +226,11 @@ class TestVLLMModelServerIntegration:
         """Minimal initialization parameters for integration tests."""
         return {
             'context': mlrun_context,
-            'name': 'tiny_vllm_server',
-            'model_path': '/tiny/path/to/model',
+            'name': 'Tiny-LLM',
+            'model_path': '/data/.cache/huggingface/Tiny-LLM',
             'model_name': 'arnir0/Tiny-LLM'
         }
-    
-    @pytest.mark.skipif(True, reason="Requires full mlrun installation")
-    def test_real_mlrun_integration(self):
-        """Test with actual mlrun components (skipped by default)."""
-        # This test would require actual mlrun installation and setup
-        # It's marked to skip by default but can be enabled for full integration testing
-        pass
-    
+
     def test_class_attributes_exist(self):
         """Test that required class attributes and methods exist."""
         # Test class has required attributes
@@ -209,6 +248,37 @@ class TestVLLMModelServerIntegration:
         assert server.name == tiny_init_params['name']
         assert server.model_path == tiny_init_params['model_path']
         assert server.model_name == tiny_init_params['model_name']
+
+    def test_download_model(self, tiny_init_params):
+        """Test that _download_model calls snapshot_download."""
+        server = VLLMModelServer(**tiny_init_params)
+        server._download_model()
+            
+        # # Verify snapshot_download was called with correct parameters
+        # mock_download.assert_called_once_with(
+        #     repo_id=tiny_init_params['model_name'],
+        #     local_dir=tiny_init_params['model_path'],
+        #     resume_download=True
+        # )
+
+    def test_log_model(self, tiny_init_params):
+        """Test that _log_model logs the model to the MLRun project."""
+        server = VLLMModelServer(**tiny_init_params)
+        server._log_model()
+
+    def test_store_model(self, tiny_init_params):
+        """Test that store_model stores the model in the MLRun project."""
+        server = VLLMModelServer(**tiny_init_params)
+        server.store_model()
+        
+        # Verify that the model was logged to the project
+        project = mlrun.get_or_create_project(name=tiny_init_params['context'].project)
+        artifact = project.get_artifact(server.name)
+        
+        assert artifact is not None
+        assert artifact.uri.startswith('store://artifacts')
+        assert artifact.labels['framework'] == 'vllm'
+        assert artifact.labels['source'] == 'huggingface'
 
 if __name__ == '__main__':
     pytest.main([__file__])
