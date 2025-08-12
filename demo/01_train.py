@@ -7,10 +7,16 @@ from sklearn.model_selection import train_test_split
 
 
 def train_model(context):
-    print("Training model...")
-    data_uri = str(context.get_input("dataset"))
-    print(data_uri)
-    df = mlrun.get_dataitem(url=data_uri).as_df()
+    # Load the dataset from the provided feature vector
+    feature_vector_name = context.inputs.get("feature", None)
+    context.logger.info(f"Loading dataset from feature vector: {feature_vector_name}")
+    feature_vector = fstore.get_feature_vector(feature_vector_name)
+    if not feature_vector:
+        raise ValueError("Dataset not found or is empty.")
+
+    df = feature_vector.get_offline_features().to_dataframe()
+
+    context.logger.info("Starting training process...")
     print(df.head())
     
     # X = df.drop("label", axis=1)
