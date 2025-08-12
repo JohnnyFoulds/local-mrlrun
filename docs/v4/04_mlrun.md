@@ -51,14 +51,4 @@ In a separate terminal progress can be viewed with the following command:
 
 ```bash
 sudo kubectl get pods -n mlrun -w
-``` 
-
-## Nuclio Problem
-
-```bash
-sudo helm get values mlrun-ce -n mlrun --kubeconfig /etc/rancher/k3s/k3s.yaml
-
-sudo kubectl get daemonset -n mlrun --kubeconfig /etc/rancher/k3s/k3s.yaml | grep v3io
-
-# sudo helm show values mlrun-ce/mlrun-ce --kubeconfig /etc/rancher/k3s/k3s.yaml | grep -C 5 "v3io:"
 ```

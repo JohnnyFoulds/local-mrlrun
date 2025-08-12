@@ -1,7 +1,7 @@
-kind: project
 metadata:
-  name: mlrun-demo-johannes
+  name: test-vllm-integration-johannes
 spec:
-  conda: ''
   desired_state: online
   source: ''
+  conda: ''
+kind: project

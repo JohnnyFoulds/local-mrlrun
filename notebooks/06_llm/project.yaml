@@ -1,7 +1,7 @@
+kind: project
 spec:
   desired_state: online
-  source: ''
   conda: ''
-kind: project
+  source: ''
 metadata:
-  name: llm-serving-johannes
+  name: llm-batch-johannes
