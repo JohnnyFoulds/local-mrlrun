@@ -57,3 +57,4 @@
 - [GPT-OSS: Hype](https://www.youtube.com/watch?v=NyW7EDFmWl4)
 - [Let's Run OpenAI GPT-OSS - Official Open Source ChatGPT | Developer Review](https://www.youtube.com/watch?v=mlpFG8e_fLw)
 - [vLLM: gpt-oss Usage Guide](https://docs.vllm.ai/projects/recipes/en/latest/OpenAI/GPT-OSS.html)
+- [unsloth/gpt-oss: How to Run & Fine-tune](https://docs.unsloth.ai/basics/gpt-oss-how-to-run-and-fine-tune)
