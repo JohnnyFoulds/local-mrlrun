@@ -1,0 +1,7 @@
+metadata:
+  name: hello-function
+kind: project
+spec:
+  source: ''
+  desired_state: online
+  conda: ''

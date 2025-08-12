@@ -1,0 +1,47 @@
+#mlrun==1.7.2
+#mlrun==1.6.2
+#igz_mgmt
+#apscheduler
+#uvicornclear
+
+#grpcio==1.48
+#grpcio-tools==1.48
+
+# # --- 1.7.2 ---
+# mlrun==1.7.2
+# grpcio-tools==1.47.5
+# s3fs==2024.6.1
+# # ------------
+
+
+# --- 1.9.1 ---
+mlrun==1.9.1
+grpcio-tools==1.47.5
+s3fs==2024.6.1
+# ------------
+
+#s3fs==2024.6.1
+#pyarrow==16.1.0
+#v3io-frames==0.10.14
+#orjson==3.10.18
+#PyYAML==5.1.2
+
+#grpcio==1.73.0
+#grpcio-tools==1.47.5
+
+
+# -- 1.0.5 ---
+# mlrun==1.0.5
+# notebook==6.5.6
+# ------------
+
+# click==8.0.0
+# PyYAML==5.3
+# kfp==1.8.5
+# storey==1.0.6
+# grpcio-tools==1.41.1
+
+
+# --- other libraries ---
+scikit-learn==1.6.1
+huggingface-hub==0.34.4

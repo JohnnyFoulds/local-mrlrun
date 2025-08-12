@@ -1,0 +1,14 @@
+name: local-mlrun
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - libprotobuf=3.20.3
+  - protobuf=3.20.3
+  # - grpcio=1.41.1
+  #- PyYAML=5.1.2
+  - pip:
+      - -r requirements_dev.txt
+      - -r requirements.txt

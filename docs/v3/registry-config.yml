@@ -1,0 +1,16 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+http:
+  addr: :5000
+  tls:
+    certificate: /certs/tls.crt
+    key: /certs/tls.key
+auth:
+  htpasswd:
+    realm: Registry Realm
+    path: /auth/htpasswd
+storage:
+  filesystem:
+    rootdirectory: /var/lib/registry
