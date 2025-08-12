@@ -19,14 +19,14 @@ def train_model(context):
     context.logger.info("Starting training process...")
     print(df.head())
     
-    # X = df.drop("label", axis=1)
-    # y = df["label"]
+    X = df.drop("label", axis=1)
+    y = df["label"]
 
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-    # model = RandomForestClassifier()
-    # model.fit(X_train, y_train)
-    # acc = model.score(X_test, y_test)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
+    acc = model.score(X_test, y_test)
 
-    # context.log_result("accuracy", acc)
-    # joblib.dump(model, "model.joblib")
-    # context.log_model("rf-model", model_file="model.joblib")
+    context.log_result("accuracy", acc)
+    joblib.dump(model, "model.joblib")
+    context.log_model("rf-model", model_file="model.joblib")
