@@ -43,7 +43,7 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
         # Save hub loading parameters:
         self.model_name = model_name
 
-    #region Model Management
+    # region Model Management
     def _download_model(self):
         """
         Download the model from Hugging Face Hub if it is not already present.
@@ -115,7 +115,7 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
 
         self.context.logger.info(
             f"Model {self.model_name} stored successfully.")
-    #endregion Model Management
+    # endregion Model Management
 
     def get_model_artifact(self):
         """ Retrieve the model artifact from the MLRun project."""
@@ -136,12 +136,12 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
             "config.json",              # often needed too
             "generation_config.json",   # optional, if exists
         ]
-        
+
         # create a temporary directory to store the tokenizer files
         temp_dir = tempfile.mkdtemp(prefix="vllm_tokenizer_")
         self.context.logger.info(
             f"Downloading tokenizer files to temporary directory: {temp_dir}")
-        
+
         # get the model artifact from the context
         model_artifact = self.get_model_artifact()
 
@@ -154,17 +154,18 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
             # if the file is not in the tokenizer files, skip it
             if filename not in tokenizer_files:
                 continue
-            
+
             # download the file to the temporary directory
-            self.context.logger.info(f"..Downloading {filename} to {temp_dir}")
+            self.context.logger.info(
+                f"...Downloading {filename} to {temp_dir}")
             data_item_file = mlrun.get_dataitem(f"{data_item.url}{filename}")
             data_item_file.download(target_path=f"{temp_dir}/{filename}")
 
         return temp_dir
 
     def offline_inference(
-        self, 
-        prompts:List[str],
+        self,
+        prompts: List[str],
         sampling_params: Union[SamplingParams, Dict],
         **generate_kwargs
     ) -> List[RequestOutput]:
@@ -174,7 +175,7 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
         :param prompts: List of prompts to process.
         :param sampling_params: Sampling parameters for the model.
         :param generate_kwargs: Additional keyword arguments to pass to llm.generate().
-        :return: List of RequestOutput containing the model's responses.
+        :return List of RequestOutput containing the model's responses.
         """
         self.context.logger.info(
             f"Running offline inference...")
@@ -210,3 +211,57 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
             f"Offline inference completed with {len(outputs)} responses.")
 
         return outputs
+
+# region Handler Methods
+
+
+def offline_inference_handler(
+    context: mlrun.MLClientCtx,
+    model_name: str,
+    prompts: List[str],
+    sampling_params: Dict[str, Union[float, int, str]],
+    **generate_kwargs
+) -> List[Dict[str, str]]:
+    """
+    Handler for offline inference requests.
+
+    :param context: MLRun context.
+    :param model_name: Name of the VLLM model.
+    :param prompts: List of prompts to process.
+    :param sampling_params: Sampling parameters for the model.
+    :param generate_kwargs: Additional keyword arguments for inference.
+    """
+    context.logger.info(
+        f"Running offline inference for model {model_name} with {len(prompts)} prompts.")
+
+    # set the aws endpoint url for vLLM
+    s3_endpoint_url = os.environ.get("S3_ENDPOINT_URL")
+    if s3_endpoint_url is not None:
+        os.environ["AWS_ENDPOINT_URL"] = s3_endpoint_url
+
+    # create the VLLMModelServer instance
+    server = VLLMModelServer(
+        context=context,
+        name=model_name,
+        model_path=f"/tmp/{model_name}",
+        model_name=model_name
+    )
+
+    # run offline inference
+    outputs = server.offline_inference(
+        prompts=prompts,
+        sampling_params=sampling_params,
+        **generate_kwargs)
+
+    # log the output
+    output_dict = [{
+        "prompt": str(output.prompt) if output.prompt is not None else "",
+        "response": str(output.outputs[0].text) if output.outputs and output.outputs[0].text is not None else "",
+    } for output in outputs]
+
+    context.log_result(
+        key="outputs",
+        value=output_dict,
+    )
+
+# endregion Handler Methods
