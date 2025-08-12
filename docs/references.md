@@ -8,6 +8,7 @@
 ## MLRun
 
 - [MLRun Quick Start Tutorial: YouTube](https://www.youtube.com/watch?v=xI8KVGLlj7Q)
+- [Kubeflow Vs. MLflow Vs. MLRun: Which One is Right for You?](https://www.iguazio.com/blog/kubeflow-vs-mlflow-vs-mlrun/)
 - [MLRun Tutorial: How to Train, Compare, and Register Models: YouTube](https://www.youtube.com/watch?v=bZgBsmLMdQo)
 - [Quick start tutorial for machine learning](https://docs.mlrun.org/en/latest/tutorials/01-mlrun-basics.html)
 - [Train, compare, and register models](https://docs.mlrun.org/en/latest/tutorials/02-model-training.html)
@@ -26,9 +27,13 @@
 
 - [Garage: Deploying on Kubernetes](https://garagehq.deuxfleurs.fr/documentation/cookbook/kubernetes/)
 
+## PyPI
+
+- [Hosting your own simple repository](https://packaging.python.org/en/latest/guides/hosting-your-own-index/)
+
 ## vLLM
 
-- [Offline Inference: Qwen2.5-Omni ](https://github.com/vllm-project/vllm/blob/main/examples/offline_inference/qwen2_5_omni/only_thinker.py)
+- [Offline Inference: Qwen2.5-Omni](https://github.com/vllm-project/vllm/blob/main/examples/offline_inference/qwen2_5_omni/only_thinker.py)
 - [Loading models with Run:ai Model Streamer](https://docs.vllm.ai/en/stable/models/extensions/runai_model_streamer.html)
 - [Stream Model From AWS S3](https://github.com/run-ai/runai-model-streamer/blob/master/examples/stream_safetensors_from_s3.ipynb)
 - [vLLM Recipes](https://docs.vllm.ai/projects/recipes/en/latest/)
