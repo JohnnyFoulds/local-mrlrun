@@ -30,6 +30,7 @@
 ## PyPI
 
 - [Hosting your own simple repository](https://packaging.python.org/en/latest/guides/hosting-your-own-index/)
+- [Index URL](https://pip.pypa.io/en/latest/cli/pip_install/#cmdoption-i)
 
 ## vLLM
 
