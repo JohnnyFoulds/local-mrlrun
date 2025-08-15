@@ -13,4 +13,5 @@ Experiment with deploying MLRun on OpenShift.
 
 ### MLRun
 
+- [Expose OpenShift Internal Registry to External Users](https://computingpost.medium.com/expose-openshift-internal-registry-to-external-users-479b320003e7)
 - [MLRun Community Edition on Red Hat OpenShift](https://www.redhat.com/en/blog/mlrun-community-edition-red-hat-openshift)
