@@ -199,13 +199,14 @@ class VLLMModelServer(mlrun.serving.v2_serving.V2ModelServer):
             hf_config_path=tokenizer_dir,
             trust_remote_code=True,
             load_format="runai_streamer",
+            **generate_kwargs
         )
 
         # Run inference
         outputs = llm.generate(
             prompts,
-            sampling_params=sampling_params,
-            **generate_kwargs)
+            sampling_params=sampling_params
+        )
 
         self.context.logger.info(
             f"Offline inference completed with {len(outputs)} responses.")
