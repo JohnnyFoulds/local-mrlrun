@@ -1,0 +1,21 @@
+# Client Machine Configuration
+
+## Host Names
+
+On your Ubuntu server, view the contents of the /etc/hosts file:
+
+```bash
+cat /etc/hosts
+```
+
+Copy evertything in the `# Added by CRC` bock.
+
+**Important**: Notice that the IP address in this block (192.168.126.11 in this example) is not the Ubuntu server's main IP. This is the internal IP of the CRC virtual machine. You will not use this IP on your Mac. You will use the Ubuntu server's IP from Step 1
+
+### Add the Entries to Your Mac Mini's Hosts File
+
+Go to the bottom of the file and add the following lines. Remember to replace 127.0.0.1 with your actual Ubuntu server's IP address.
+
+```bash
+sudo vi /etc/hosts
+```
