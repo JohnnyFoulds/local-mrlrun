@@ -56,90 +56,78 @@ Create a ConfigMap with a minimal **hive-site.xml** and a Deployment+Service tha
 ```bash
 # Config for Hive Metastore (uses Postgres)
 cat <<'EOF' | kubectl apply -n data -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: hive-metastore-config
-data:
-  hive-site.xml: |
-    <configuration>
-      <property>
-        <name>javax.jdo.option.ConnectionURL</name>
-        <value>jdbc:postgresql://hms-pg-postgresql.data.svc.cluster.local:5432/metastore</value>
-      </property>
-      <property>
-        <name>javax.jdo.option.ConnectionDriverName</name>
-        <value>org.postgresql.Driver</value>
-      </property>
-      <property>
-        <name>javax.jdo.option.ConnectionUserName</name>
-        <value>hive</value>
-      </property>
-      <property>
-        <name>javax.jdo.option.ConnectionPassword</name>
-        <value>hivepass</value>
-      </property>
-      <property>
-        <name>datanucleus.autoCreateSchema</name>
-        <value>true</value>
-      </property>
-      <property>
-        <name>hive.metastore.warehouse.dir</name>
-        <value>/warehouse</value>
-      </property>
-      <property>
-        <name>metastore.thrift.port</name>
-        <value>9083</value>
-      </property>
-      <property>
-        <name>metastore.thrift.bind.host</name>
-        <value>0.0.0.0</value>
-      </property>
-    </configuration>
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: hive-metastore
 spec:
   replicas: 1
-  selector:
-    matchLabels: { app: hive-metastore }
+  selector: { matchLabels: { app: hive-metastore } }
   template:
-    metadata:
-      labels: { app: hive-metastore }
+    metadata: { labels: { app: hive-metastore } }
     spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command: ['sh','-c','until nc -z -w3 hms-pg-postgresql.data.svc.cluster.local 5432; do echo "waiting for postgres..."; sleep 2; done']
+        - name: fetch-pg-driver
+          image: curlimages/curl:8.8.0
+          command: ['sh','-c']
+          args:
+            - |
+              set -euo pipefail
+              mkdir -p /aux-jars
+              for URL in \
+                "https://repo1.maven.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar" \
+                "https://repo.maven.apache.org/maven2/org/postgresql/postgresql/42.7.4/postgresql-42.7.4.jar" \
+                "https://jdbc.postgresql.org/download/postgresql-42.7.4.jar"
+              do
+                echo "Trying: $URL"
+                if curl --fail --location --retry 5 --retry-delay 2 -o /aux-jars/postgresql.jar "$URL"; then break; fi
+              done
+              test -s /aux-jars/postgresql.jar || { echo "FATAL: could not fetch JDBC jar"; exit 2; }
+          volumeMounts: [{ name: aux-jars, mountPath: /aux-jars }]
       containers:
         - name: metastore
-          # Widely used HMS image; adjust tag if you standardize elsewhere
-          image: bitnami/hive:3.1.3
+          image: apache/hive:3.1.3
           imagePullPolicy: IfNotPresent
-          command: ["/bin/bash","-lc","/opt/bitnami/hive/bin/schematool -dbType postgres -initSchema --verbose || true; /opt/bitnami/hive/bin/hive --service metastore"]
-          ports:
-            - containerPort: 9083
-          volumeMounts:
-            - name: hive-config
-              mountPath: /opt/bitnami/hive/conf/hive-site.xml
-              subPath: hive-site.xml
           env:
-            - name: HADOOP_HOME
-              value: /opt/bitnami/hadoop
+            - { name: HIVE_AUX_JARS_PATH, value: /aux-jars/postgresql.jar }
+            - { name: HADOOP_CLASSPATH,   value: /aux-jars/postgresql.jar }
+            - { name: HIVE_CONF_DIR,      value: /opt/hive/conf }
+          command: ["/bin/bash","-lc"]
+          args:
+            - |
+              set -e
+              /opt/hive/bin/schematool \
+                -dbType postgres \
+                -driver org.postgresql.Driver \
+                -userName hive \
+                -passWord hivepass \
+                -url jdbc:postgresql://hms-pg-postgresql.data.svc.cluster.local:5432/metastore \
+                -initSchema -verbose || true
+              exec /opt/hive/bin/hive --service metastore -p 9083
+          ports: [{ name: thrift, containerPort: 9083 }]
+          volumeMounts:
+            - { name: hive-config, mountPath: /opt/hive/conf/hive-site.xml, subPath: hive-site.xml }
+            - { name: aux-jars,    mountPath: /aux-jars }
+          readinessProbe:
+            tcpSocket: { port: thrift }
+            initialDelaySeconds: 25
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12
+          livenessProbe:
+            tcpSocket: { port: thrift }
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
       volumes:
         - name: hive-config
-          configMap:
-            name: hive-metastore-config
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: hive-metastore
-spec:
-  ports:
-    - name: thrift
-      port: 9083
-      targetPort: 9083
-  selector:
-    app: hive-metastore
+          configMap: { name: hive-metastore-config }
+        - name: aux-jars
+          emptyDir: {}
 EOF
 ```
 
