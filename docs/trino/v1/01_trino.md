@@ -1,7 +1,3 @@
-Got it. Let’s rewrite your README in the **simplest correct form**, cutting Hive entirely (since it’s been a nightmare) and using the modern, supported **Iceberg REST catalog (Project Nessie)** with Trino + MinIO. Everything is inline `kubectl`/`helm`/`cat <<EOF` so you can copy-paste.
-
----
-
 # 🚀 Minimal Trino + Iceberg + MinIO + Nessie on K3s
 
 This guide installs **Trino** with **Iceberg** backed by **MinIO** (from your existing `mlrun` namespace).
@@ -21,7 +17,10 @@ Instead of Hive Metastore, we use the modern **Project Nessie REST catalog** + P
 ## 1. Create a Namespace
 
 ```bash
-kubectl create namespace data || true
+# load environment variables
+set -a && source .env && set +a
+
+kubectl create namespace data 
 ```
 
 ---
@@ -30,10 +29,12 @@ kubectl create namespace data || true
 
 ```bash
 helm repo add bitnami https://charts.bitnami.com/bitnami
+
 helm upgrade --install hms-pg bitnami/postgresql -n data \
   --set auth.username=nessie \
   --set auth.password=nessiepass \
   --set auth.database=nessiedb
+
 kubectl -n data rollout status statefulset/hms-pg-postgresql
 ```
 
@@ -91,24 +92,81 @@ kubectl -n data rollout status deploy/nessie
 
 ```bash
 kubectl -n data create secret generic minio-credentials \
-  --from-literal=MINIO_ACCESS_KEY='YOUR_MINIO_ACCESS_KEY' \
-  --from-literal=MINIO_SECRET_KEY='YOUR_MINIO_SECRET_KEY' \
+  --from-literal=MINIO_ACCESS_KEY='dragon' \
+  --from-literal=MINIO_SECRET_KEY='pass@word' \
   2>/dev/null || true
 ```
 
----
-
 ## 5. Install Trino with Iceberg (Nessie)
+
+First, create a **ConfigMap** that defines the Iceberg catalog configuration pointing to Nessie and MinIO:
+
+```bash
+cat <<'EOF' | kubectl -n data apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trino-catalog-iceberg
+  labels:
+    app.kubernetes.io/component: catalog
+    app.kubernetes.io/instance: trino
+data:
+  iceberg.properties: |
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.uri=http://nessie.data.svc.cluster.local:19120/api/v2
+
+    # MinIO / S3
+    fs.native-s3.enabled=true
+    s3.endpoint=http://minio-service.mlrun.svc.cluster.local:9000
+    s3.path-style-access=true
+    s3.aws-access-key=${ENV:AWS_ACCESS_KEY_ID}
+    s3.aws-secret-key=${ENV:AWS_SECRET_ACCESS_KEY}
+EOF
+```
+
+Now install Trino via Helm, mounting the catalog ConfigMap and exposing it on **9090** (not 8080):
 
 ```bash
 helm repo add trino https://trinodb.github.io/charts
 helm repo update
 
-helm upgrade --install trino trino/trino -n data \
-  --set server.workers=1 \
-  --set service.port=9090 \
-  --set envFrom[0].secretRef.name=minio-credentials \
-  --set catalogs.iceberg="connector.name=iceberg\niceberg.catalog.type=nessie\niceberg.nessie-catalog.uri=http://nessie.data.svc.cluster.local:19120/api/v2\nfs.native-s3.enabled=true\ns3.endpoint=http://minio-service.mlrun.svc.cluster.local:9000\ns3.path-style-access=true\ns3.aws-access-key=\${ENV:MINIO_ACCESS_KEY}\ns3.aws-secret-key=\${ENV:MINIO_SECRET_KEY}"
+cat <<'EOF' | helm upgrade --install trino trino/trino -n data -f -
+server:
+  workers: 1
+  exchangeManager:
+    name: filesystem
+    baseDir:
+      - /tmp/trino-exchange
+
+service:
+  port: 9090
+
+# Mount MinIO creds so catalog can reference ${ENV:...}
+envFrom:
+  - secretRef:
+      name: minio-credentials
+
+# Define the Iceberg catalog (Nessie) correctly.
+# NOTE: default-warehouse-dir is REQUIRED by Trino’s Nessie integration.
+# See Trino+Nessie sample in official docs. :contentReference[oaicite:0]{index=0}
+catalogs:
+  iceberg: |
+    connector.name=iceberg
+    iceberg.catalog.type=nessie
+    iceberg.nessie-catalog.uri=http://nessie.data.svc.cluster.local:19120/api/v2
+    iceberg.nessie-catalog.ref=main
+    iceberg.nessie-catalog.default-warehouse-dir=s3://iceberg-warehouse   # <-- choose/ensure this bucket exists
+
+    # S3/MinIO
+    fs.native-s3.enabled=true
+    s3.endpoint=http://minio-service.mlrun.svc.cluster.local:9000
+    s3.path-style-access=true
+    s3.ssl.enabled=false
+    s3.aws-access-key=${ENV:MINIO_ACCESS_KEY}
+    s3.aws-secret-key=${ENV:MINIO_SECRET_KEY}
+EOF
+
 kubectl -n data rollout status deploy/trino-coordinator
 ```
 
@@ -122,14 +180,14 @@ Forward Trino locally on **9090**:
 kubectl -n data port-forward svc/trino 9090:9090
 ```
 
-Download Trino CLI:
+Download the Trino CLI:
 
 ```bash
 curl -LO https://repo1.maven.org/maven2/io/trino/trino-cli/476/trino-cli-476-executable.jar
 chmod +x trino-cli-476-executable.jar
 ```
 
-Test:
+Run a quick smoke test:
 
 ```bash
 ./trino-cli-476-executable.jar --server http://localhost:9090 --catalog iceberg <<'SQL'
@@ -151,9 +209,9 @@ Expected output:
 
 ---
 
-✅ You now have **Trino + Iceberg + MinIO** working with a modern **Nessie REST catalog** (no Hive pain).
-Next step: ingest the Chicago Taxi dataset into MinIO/Iceberg and query it.
+✅ At this point, Trino is correctly wired to Iceberg (via Nessie) and MinIO.
+Next step (Step 7) will be to ingest the Chicago Taxi dataset.
 
 ---
 
-Do you want me to **append Step 7 with instructions for downloading the taxi dataset and loading it into Iceberg**, or keep the README strictly infra-only?
+Do you want me to go ahead and extend the README with **Step 7: Load Chicago Taxi dataset into Iceberg/MinIO**, so you can run queries immediately after this infra is up?
