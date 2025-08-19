@@ -105,29 +105,55 @@ kubectl -n data rollout status deploy/polaris
 # Clean any previous helper pod
 kubectl -n data delete pod mc-setup 2>/dev/null || true
 
-# Use curlimages/curl: has /bin/sh and curl. Download official mc with --insecure (-k).
-kubectl -n data run mc-setup --restart=Never --image=alpine:3.20 -- \
-  /bin/sh -lc "
-    set -e
-    apk add curl &&
-    curl -k -L -o /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc &&
-    chmod +x /usr/local/bin/mc &&
-    echo "mc version:" &&
-    /usr/local/bin/mc --version &&
-    echo "Setting up MinIO alias..." &&
-    /usr/local/bin/mc alias set minio '${S3_ENDPOINT_URL}' '${AWS_ACCESS_KEY_ID}' '${AWS_SECRET_ACCESS_KEY}' --api s3v4 &&
-    /usr/local/bin/mc mb -p minio/warehouse || true &&
-    echo "Creating MinIO bucket..." &&
-    /usr/local/bin/mc ls minio/warehouse &&
-    echo Done!; sleep 3
-  "
+cat <<EOF | kubectl apply -n data -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mc-setup
+  namespace: data
+spec:
+  template:
+    spec: # This is the PodSpec
+      containers:
+      - name: mc-setup
+        image: alpine:3.20
+        envFrom: # <-- CORRECT: envFrom is a child of the container
+          - secretRef:
+              name: minio-credentials
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            set -e
+            set -x # Prints each command before executing it (great for debugging)
+
+            echo "INFO: Installing dependencies..."
+            apk add curl
+
+            echo "INFO: Downloading mc client..."
+            curl -L -o /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
+            chmod +x /usr/local/bin/mc
+            mc --version
+
+            echo "INFO: Setting up MinIO alias..."
+            mc alias set minio "${S3_ENDPOINT_URL}" "${AWS_ACCESS_KEY_ID}" "${AWS_SECRET_ACCESS_KEY}" --api s3v4
+
+            echo "INFO: Creating MinIO warehouse bucket if it doesn't exist..."
+            mc mb -p minio/warehouse || true
+
+            echo "INFO: Verifying bucket exists..."
+            mc ls minio/warehouse
+
+            echo "SUCCESS: MinIO setup complete."
+      restartPolicy: Never
+  backoffLimit: 1 # Optional: How many times to retry the job if it fails
+EOF
 
 # Wait until the pod is Ready (it sleeps briefly at the end so it can flip Ready)
-kubectl -n data wait --for=condition=Ready pod/mc-setup --timeout=120s || true
+kubectl -n data wait --for=condition=complete job/mc-setup --timeout=120s
 
 # Show logs, then clean up
-kubectl -n data logs mc-setup
-kubectl -n data delete pod mc-setup --now
+kubectl -n data logs -f job/mc-setup
+kubectl -n data delete job mc-setup
 ```
 
 ---
