@@ -1,24 +1,27 @@
-# README — Polaris (Iceberg REST) + Trino on K3s with External MinIO (no probes)
+# README — Polaris (Iceberg REST) + Trino on K3s with External MinIO
 
 > Assumptions
 > You ran: `set -a && source .env && set +a` with
 >
 > ```
-> S3_ENDPOINT_URL=http://192.168.1.184:30080  # or http://dragon.lan:30080
+> S3_ENDPOINT_URL=http://192.168.1.184:30080
 > AWS_ACCESS_KEY_ID=dragon
 > AWS_SECRET_ACCESS_KEY=pass@word
 > ```
 
-## 0) Reset namespace & old resources
+## 0) Create the namespace
 
 ```bash
-kubectl create namespace data 2>/dev/null || true
+echo $S3_ENDPOINT_URL
+echo $AWS_ACCESS_KEY_ID
+echo $AWS_SECRET_ACCESS_KEY
+
+kubectl create namespace data
 ```
 
 ---
 
 ## 1) MinIO credentials (from your env)
-
 ```bash
 kubectl -n data create secret generic minio-credentials \
   --from-literal=MINIO_ACCESS_KEY="${AWS_ACCESS_KEY_ID}" \
@@ -27,9 +30,7 @@ kubectl -n data create secret generic minio-credentials \
 
 ---
 
-## 2) Polaris (REST catalog) wired to **your** MinIO endpoint
-
-*(no liveness/readiness probes at all)*
+## 2) Polaris (REST catalog)
 
 ```bash
 cat <<EOF | kubectl apply -n data -f -
@@ -51,13 +52,22 @@ spec:
         ports:
         - containerPort: 8181
         env:
-        # Minimal bootstrap and realm config ONLY
+        - name: AWS_ACCESS_KEY_ID
+          value: "${AWS_ACCESS_KEY_ID}" 
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "${AWS_SECRET_ACCESS_KEY}" 
+        - name: AWS_REGION
+          value: dummy-region
+        - name: AWS_ENDPOINT_URL_S3
+          value: "${S3_ENDPOINT_URL}" 
+        - name: AWS_ENDPOINT_URL_STS
+          value: "${S3_ENDPOINT_URL}"                                         
         - name: POLARIS_BOOTSTRAP_CREDENTIALS
           value: default-realm,root,secret
         - name: polaris.realm-context.realms
           value: default-realm
-        - name: polaris.realm-context.default-realm
-          value: default-realm
+        - name: polaris.features.DROP_WITH_PURGE_ENABLED
+          value: "true"
 ---
 apiVersion: v1
 kind: Service
@@ -126,9 +136,6 @@ spec:
   backoffLimit: 1 # Optional: How many times to retry the job if it fails
 EOF
 
-# Wait until the pod is Ready (it sleeps briefly at the end so it can flip Ready)
-kubectl -n data wait --for=condition=complete job/mc-setup --timeout=120s
-
 # Show logs, then clean up
 kubectl -n data logs -f job/mc-setup
 kubectl -n data delete job mc-setup
@@ -136,12 +143,11 @@ kubectl -n data delete job mc-setup
 
 ---
 
-## 4) Create a Polaris catalog `main` (points to `s3://warehouse`)
-
+## 4) Create a Polaris catalog `main`
 ```bash
 # Port-forward Polaris temporarily
 kubectl -n data port-forward svc/polaris 8181:8181 >/tmp/polaris.pf.log 2>&1 & 
-PF_PID=$!; sleep 2
+PF_PID=$!; sleep 3
 
 # Get OAuth token
 ACCESS_TOKEN=$(curl -s -X POST \
@@ -150,8 +156,7 @@ ACCESS_TOKEN=$(curl -s -X POST \
   | jq -r '.access_token')
 echo "ACCESS_TOKEN: ${ACCESS_TOKEN:0:16}..."
 
-# Create the catalog with the corrected payload (no wildcard in allowedLocations)
-# We expect an 'HTTP/1.1 201 Created' or 'HTTP/1.1 200 OK' response
+# Create the catalog using a clean JSON payload
 curl -i -X POST \
   -H "Authorization: Bearer $ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
@@ -180,25 +185,46 @@ EOF
 curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
   'http://localhost:8181/api/management/v1/catalogs' | jq
 
+
+# Create a catalog admin role
+curl -X PUT http://localhost:8181/api/management/v1/catalogs/main/catalog-roles/catalog_admin/grants \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"grant":{"type":"catalog", "privilege":"CATALOG_MANAGE_CONTENT"}}'
+
+# Create a data engineer role
+curl -X POST http://localhost:8181/api/management/v1/principal-roles \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"principalRole":{"name":"data_engineer"}}'
+
+# Connect the roles
+curl -X PUT http://localhost:8181/api/management/v1/principal-roles/data_engineer/catalog-roles/main \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"catalogRole":{"name":"catalog_admin"}}'
+
+# Give root the data engineer role
+curl -X PUT http://localhost:8181/api/management/v1/principals/root/principal-roles \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"principalRole": {"name":"data_engineer"}}'
+
+# Check that the role was correctly assigned to the root principal:
+curl -X GET http://localhost:8181/api/management/v1/principals/root/principal-roles -H "Authorization: Bearer $ACCESS_TOKEN" | jq
+
 # Stop port-forward
 kill $PF_PID
 ```
 
 ---
 
-## 5) Install Trino (Helm), service on **9191**, Iceberg REST to Polaris
+## 5) Install Trino (Helm) with All Corrections
 
 ```bash
-# 1. Add and update the Trino Helm repository
+# Add and update the Trino Helm repository
 helm repo add trino https://trinodb.github.io/charts/ && helm repo update
 
-# 2. Deploy Trino with a custom configuration values file piped via stdin
+# Deploy Trino with a custom configuration values file piped via stdin
 cat <<EOF | helm upgrade --install trino trino/trino -n data -f -
 server:
   workers: 1
-  exchangeManager:
-    name: filesystem
-    baseDir: /tmp/trino-exchange
 service:
   type: ClusterIP
   port: 9191
@@ -207,18 +233,16 @@ catalogs:
     connector.name=iceberg
     iceberg.catalog.type=rest
     iceberg.rest-catalog.uri=http://polaris.data.svc.cluster.local:8181/api/catalog/
-    iceberg.rest-catalog.warehouse=polariscatalog
+    iceberg.rest-catalog.warehouse=main
+    iceberg.rest-catalog.vended-credentials-enabled=true
     iceberg.rest-catalog.security=OAUTH2
     iceberg.rest-catalog.oauth2.credential=root:secret
     iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
-    iceberg.rest-catalog.vended-credentials-enabled=true
 
+    # required for Trino to read from/write to S3
     fs.native-s3.enabled=true
-    s3.path-style-access=true
     s3.endpoint=${S3_ENDPOINT_URL}
     s3.region=dummy-region
-    s3.aws-access-key=${AWS_ACCESS_KEY_ID}
-    s3.aws-secret-key=${AWS_SECRET_ACCESS_KEY}
 
   tpch: |
     connector.name=tpch
@@ -259,31 +283,5 @@ INSERT INTO customers VALUES
   (2,'Hermione','Granger','hermione@hogwarts.edu'),
   (3,'Tony','Stark','tony@starkindustries.com');
 SELECT * FROM customers;
-SELECT snapshot_id, committed_at, summary FROM "customers$snapshots" ORDER BY committed_at DESC;
 SQL
 ```
-
-(Optional) Web UI:
-
-```bash
-kubectl -n data port-forward svc/trino-coordinator 9191:9191
-# open http://localhost:9191
-```
-
----
-
-### Notes
-
-* **No health checks**: Polaris pod will not flap due to probe endpoints.
-* **No Hive/Hadoop**: pure Polaris REST + Trino Iceberg with your external MinIO.
-* **Credentials**: expanded from your shell into both Polaris env and Trino catalog.
-* **Networking**: Trino talks to Polaris via `polaris.data.svc.cluster.local:8181` and to MinIO at `${S3_ENDPOINT_URL}`.
-
-If anything still trips, paste the **first 100 lines** of:
-
-```
-kubectl -n data logs deploy/polaris --tail=200
-kubectl -n data logs deploy/trino-coordinator --tail=200
-```
-
-and I’ll adjust this README **surgically**.
