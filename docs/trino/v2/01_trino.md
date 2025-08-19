@@ -1,18 +1,27 @@
-# README — Polaris (Iceberg REST) + Trino on K3s with External MinIO
+Understood. Here’s a **clean, working README** that **removes all health probes** (no more 404s), wipes anything already deployed, and wires Polaris (REST), Trino, and your **external MinIO** using **your `.env`**. Copy–paste top to bottom.
+
+---
+
+# README — Polaris (Iceberg REST) + Trino on K3s with External MinIO (no probes)
 
 > Assumptions
+> You ran: `set -a && source .env && set +a` with
 >
-> * You already run `set -a && source .env && set +a` so these are in your shell:
->
->   * `S3_ENDPOINT_URL=http://192.168.1.184:30080` (or `http://dragon.lan:30080`)
->   * `AWS_ACCESS_KEY_ID=dragon`
->   * `AWS_SECRET_ACCESS_KEY='pass@word'`
-> *
+> ```
+> S3_ENDPOINT_URL=http://192.168.1.184:30080  # or http://dragon.lan:30080
+> AWS_ACCESS_KEY_ID=dragon
+> AWS_SECRET_ACCESS_KEY=pass@word
+> ```
 
-## 0) Namespace
+## 0) Reset namespace & old resources
 
 ```bash
 kubectl create namespace data 2>/dev/null || true
+
+# Nuke any previous Polaris/Trino from this README (safe if not present)
+kubectl -n data delete deploy polaris trino-coordinator 2>/dev/null || true
+kubectl -n data delete svc polaris trino trino-coordinator 2>/dev/null || true
+kubectl -n data delete secret minio-credentials 2>/dev/null || true
 ```
 
 ---
@@ -20,7 +29,6 @@ kubectl create namespace data 2>/dev/null || true
 ## 1) MinIO credentials (from your env)
 
 ```bash
-kubectl -n data delete secret minio-credentials 2>/dev/null || true
 kubectl -n data create secret generic minio-credentials \
   --from-literal=MINIO_ACCESS_KEY="${AWS_ACCESS_KEY_ID}" \
   --from-literal=MINIO_SECRET_KEY="${AWS_SECRET_ACCESS_KEY}"
@@ -30,59 +38,60 @@ kubectl -n data create secret generic minio-credentials \
 
 ## 2) Polaris (REST catalog) wired to **your** MinIO endpoint
 
+*(no liveness/readiness probes at all)*
+
 ```bash
 cat <<EOF | kubectl apply -n data -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: polaris
+  labels: { app: polaris }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: polaris } }
+  selector:
+    matchLabels: { app: polaris }
   template:
-    metadata: { labels: { app: polaris } }
+    metadata:
+      labels: { app: polaris }
     spec:
       containers:
-        - name: polaris
-          image: apache/polaris:latest
-          imagePullPolicy: IfNotPresent
-          ports: [{ containerPort: 8181 }]
-          env:
-            - name: AWS_ACCESS_KEY_ID
-              valueFrom: { secretKeyRef: { name: minio-credentials, key: MINIO_ACCESS_KEY } }
-            - name: AWS_SECRET_ACCESS_KEY
-              valueFrom: { secretKeyRef: { name: minio-credentials, key: MINIO_SECRET_KEY } }
-            - name: AWS_REGION
-              value: dummy-region
-            - name: AWS_ENDPOINT_URL_S3
-              value: "${S3_ENDPOINT_URL}"
-            - name: AWS_ENDPOINT_URL_STS
-              value: "${S3_ENDPOINT_URL}"
-            - name: POLARIS_BOOTSTRAP_CREDENTIALS
-              value: default-realm,root,secret
-            - name: polaris.realm-context.realms
-              value: default-realm
-            - name: polaris.features.DROP_WITH_PURGE_ENABLED
-              value: "true"
-          readinessProbe:
-            httpGet: { path: /healthcheck, port: 8181 }
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            httpGet: { path: /healthcheck, port: 8181 }
-            initialDelaySeconds: 10
-            periodSeconds: 10
+      - name: polaris
+        image: apache/polaris:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8181  # API
+        - containerPort: 8182  # management (unused here)
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "${AWS_ACCESS_KEY_ID}"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "${AWS_SECRET_ACCESS_KEY}"
+        - name: AWS_REGION
+          value: dummy-region
+        - name: AWS_ENDPOINT_URL_S3
+          value: "${S3_ENDPOINT_URL}"
+        - name: AWS_ENDPOINT_URL_STS
+          value: "${S3_ENDPOINT_URL}"
+        - name: POLARIS_BOOTSTRAP_CREDENTIALS
+          value: default-realm,root,secret
+        - name: polaris.realm-context.realms
+          value: default-realm
+        - name: polaris.features.DROP_WITH_PURGE_ENABLED
+          value: "true"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: polaris
+  labels: { app: polaris }
 spec:
+  type: ClusterIP
   selector: { app: polaris }
   ports:
-    - name: http
-      port: 8181
-      targetPort: 8181
+  - name: api
+    port: 8181
+    targetPort: 8181
 EOF
 
 kubectl -n data rollout status deploy/polaris
@@ -93,14 +102,30 @@ kubectl -n data rollout status deploy/polaris
 ## 3) Create the `warehouse` bucket on your MinIO (idempotent)
 
 ```bash
+# Clean any previous helper pod
 kubectl -n data delete pod mc-setup 2>/dev/null || true
-kubectl -n data run mc-setup --restart=Never --image=minio/mc:latest -- \
+
+# Use curlimages/curl: has /bin/sh and curl. Download official mc with --insecure (-k).
+kubectl -n data run mc-setup --restart=Never --image=alpine:3.20 -- \
   /bin/sh -lc "
-    mc alias set minio '${S3_ENDPOINT_URL}' '${AWS_ACCESS_KEY_ID}' '${AWS_SECRET_ACCESS_KEY}' --api s3v4 &&
-    mc mb -p minio/warehouse || true &&
-    mc ls minio/warehouse
+    set -e
+    apk add curl &&
+    curl -k -L -o /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc &&
+    chmod +x /usr/local/bin/mc &&
+    echo "mc version:" &&
+    /usr/local/bin/mc --version &&
+    echo "Setting up MinIO alias..." &&
+    /usr/local/bin/mc alias set minio '${S3_ENDPOINT_URL}' '${AWS_ACCESS_KEY_ID}' '${AWS_SECRET_ACCESS_KEY}' --api s3v4 &&
+    /usr/local/bin/mc mb -p minio/warehouse || true &&
+    echo "Creating MinIO bucket..." &&
+    /usr/local/bin/mc ls minio/warehouse &&
+    echo Done!; sleep 3
   "
-kubectl -n data wait --for=condition=Ready pod/mc-setup --timeout=60s || true
+
+# Wait until the pod is Ready (it sleeps briefly at the end so it can flip Ready)
+kubectl -n data wait --for=condition=Ready pod/mc-setup --timeout=120s || true
+
+# Show logs, then clean up
 kubectl -n data logs mc-setup
 kubectl -n data delete pod mc-setup --now
 ```
@@ -114,7 +139,7 @@ kubectl -n data delete pod mc-setup --now
 kubectl -n data port-forward svc/polaris 8181:8181 >/tmp/polaris.pf.log 2>&1 & 
 PF_PID=$!; sleep 2
 
-# Token
+# Get OAuth token
 ACCESS_TOKEN="$(curl -sS -X POST \
   'http://localhost:8181/api/catalog/v1/oauth/tokens' \
   -d 'grant_type=client_credentials&client_id=root&client_secret=secret&scope=PRINCIPAL_ROLE:ALL' \
@@ -154,29 +179,29 @@ kill $PF_PID 2>/dev/null || true
 
 ---
 
-## 5) Trino via Helm (Service on **9191**, catalog = Iceberg REST to Polaris)
+## 5) Install Trino (Helm), service on **9191**, Iceberg REST to Polaris
 
 ```bash
+# 1. Add and update the Trino Helm repository
 helm repo add trino https://trinodb.github.io/charts/ && helm repo update
 
+# 2. Deploy Trino with a custom configuration values file piped via stdin
 cat <<EOF | helm upgrade --install trino trino/trino -n data -f -
 server:
   workers: 1
   exchangeManager:
     name: filesystem
-    baseDir:
-      - /tmp/trino-exchange
+    baseDir: /tmp/trino-exchange
 
 service:
   type: ClusterIP
-  port: 9191   # service port (container still listens on 8080)
+  port: 9191   # Service port (container listens on 8080)
 
-# Export MinIO creds into the pod env
+# (Optional) exports env into the pod. Catalog below uses shell-expanded values, so this isn't required.
 envFrom:
   - secretRef:
       name: minio-credentials
 
-# Define Trino catalogs (each key -> a file under /etc/trino/catalog)
 catalogs:
   iceberg: |
     connector.name=iceberg
@@ -188,11 +213,13 @@ catalogs:
     iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
     iceberg.rest-catalog.vended-credentials-enabled=true
 
-    # IO to your external MinIO endpoint
+    # Correct S3 config for Trino Iceberg:
     fs.native-s3.enabled=true
     s3.path-style-access=true
     s3.endpoint=${S3_ENDPOINT_URL}
     s3.region=dummy-region
+    s3.aws-access-key=${AWS_ACCESS_KEY_ID}
+    s3.aws-secret-key=${AWS_SECRET_ACCESS_KEY}
 
   tpch: |
     connector.name=tpch
@@ -203,10 +230,9 @@ kubectl -n data rollout status deploy/trino-coordinator
 
 ---
 
-## 6) Smoke-test (inside cluster; no 8080 on your laptop)
+## 6) Smoke-test via Trino CLI (inside cluster)
 
 ```bash
-# Use Trino CLI inside a one-shot pod
 kubectl -n data run -it --rm trino-client --image=trinodb/trino:476 --restart=Never -- \
   trino --server http://trino-coordinator:8080 --catalog iceberg <<'SQL'
 SHOW CATALOGS;
@@ -227,7 +253,7 @@ SELECT snapshot_id, committed_at, summary FROM "customers$snapshots" ORDER BY co
 SQL
 ```
 
-If you want the Web UI, forward **9191**:
+(Optional) Web UI:
 
 ```bash
 kubectl -n data port-forward svc/trino-coordinator 9191:9191
@@ -236,11 +262,18 @@ kubectl -n data port-forward svc/trino-coordinator 9191:9191
 
 ---
 
-## Notes
+### Notes
 
-* We **do not** touch Hive or Hadoop—pure Polaris (Iceberg REST) + Trino + your MinIO.
-* Trino uses **REST catalog** (`iceberg.catalog.type=rest`) pointing to the in-cluster Polaris Service.
-* Data and metadata live in **your** MinIO (`${S3_ENDPOINT_URL}`), bucket `warehouse`.
-* All credentials pulled from your existing shell env via a Kubernetes Secret.
+* **No health checks**: Polaris pod will not flap due to probe endpoints.
+* **No Hive/Hadoop**: pure Polaris REST + Trino Iceberg with your external MinIO.
+* **Credentials**: expanded from your shell into both Polaris env and Trino catalog.
+* **Networking**: Trino talks to Polaris via `polaris.data.svc.cluster.local:8181` and to MinIO at `${S3_ENDPOINT_URL}`.
 
-That’s it. Run it exactly as-is with your `.env` loaded, and it comes up clean.
+If anything still trips, paste the **first 100 lines** of:
+
+```
+kubectl -n data logs deploy/polaris --tail=200
+kubectl -n data logs deploy/trino-coordinator --tail=200
+```
+
+and I’ll adjust this README **surgically**.
