@@ -1,7 +1,3 @@
-Understood. Here’s a **clean, working README** that **removes all health probes** (no more 404s), wipes anything already deployed, and wires Polaris (REST), Trino, and your **external MinIO** using **your `.env`**. Copy–paste top to bottom.
-
----
-
 # README — Polaris (Iceberg REST) + Trino on K3s with External MinIO (no probes)
 
 > Assumptions
@@ -258,9 +254,20 @@ kubectl -n data rollout status deploy/trino-coordinator
 
 ## 6) Smoke-test via Trino CLI (inside cluster)
 
+An interactive test, for example run `SHOW CATALOGS`.
+
 ```bash
 kubectl -n data run -it --rm trino-client --image=trinodb/trino:476 --restart=Never -- \
-  trino --server http://trino-coordinator:8080 --catalog iceberg <<'SQL'
+  trino --server http://trino.data.svc.cluster.local:9191 --catalog iceberg
+```
+
+Proper test:
+
+> I am not going to battle now to get this working, just use interactive with these commands.
+
+```bash
+kubectl -n data run -it --rm trino-client --image=trinodb/trino:476 --restart=Never -- \
+  trino --server http://trino.data.svc.cluster.local:9191 --catalog iceberg <<'SQL'
 SHOW CATALOGS;
 CREATE SCHEMA IF NOT EXISTS db;
 USE db;
