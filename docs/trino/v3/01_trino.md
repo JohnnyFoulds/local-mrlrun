@@ -167,52 +167,6 @@ kubectl -n data delete job mc-setup
 
 ---
 
-## 4) Create a Polaris catalog `polariscatalog` (points to `s3://warehouse`)
-
-```bash
-# Port-forward Polaris temporarily
-kubectl -n data port-forward svc/polaris 8181:8181 >/tmp/polaris.pf.log 2>&1 & 
-PF_PID=$!; sleep 2
-
-# Get OAuth token
-ACCESS_TOKEN="$(curl -sS -X POST \
-  'http://localhost:8181/api/catalog/v1/oauth/tokens' \
-  -d 'grant_type=client_credentials&client_id=root&client_secret=secret&scope=PRINCIPAL_ROLE:ALL' \
-  | jq -r '.access_token')"
-echo "ACCESS_TOKEN: ${ACCESS_TOKEN:0:16}..."
-
-# Create catalog
-curl -sS -i -X POST \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
-  'http://localhost:8181/api/management/v1/catalogs' \
-  --json "{
-    \"name\": \"polariscatalog\",
-    \"type\": \"INTERNAL\",
-    \"properties\": {
-      \"default-base-location\": \"s3://warehouse\",
-      \"s3.endpoint\": \"${S3_ENDPOINT_URL}\",
-      \"s3.path-style-access\": \"true\",
-      \"s3.access-key-id\": \"${AWS_ACCESS_KEY_ID}\",
-      \"s3.secret-access-key\": \"${AWS_SECRET_ACCESS_KEY}\",
-      \"s3.region\": \"dummy-region\"
-    },
-    \"storageConfigInfo\": {
-      \"storageType\": \"S3\",
-      \"allowedLocations\": [\"s3://warehouse/*\"]
-    }
-  }"
-
-# List catalogs
-echo ; echo "=== Polaris catalogs ==="
-curl -sS -H "Authorization: Bearer $ACCESS_TOKEN" \
-  'http://localhost:8181/api/management/v1/catalogs' | jq
-
-# Stop port-forward
-kill $PF_PID 2>/dev/null || true
-```
-
----
-
 ## 5) Install Trino (Helm), service on **9191**, Iceberg REST to Polaris
 
 ```bash
@@ -229,12 +183,7 @@ server:
 
 service:
   type: ClusterIP
-  port: 9191   # Service port (container listens on 8080)
-
-# (Optional) exports env into the pod. Catalog below uses shell-expanded values, so this isn't required.
-envFrom:
-  - secretRef:
-      name: minio-credentials
+  port: 9191
 
 catalogs:
   iceberg: |
@@ -244,13 +193,13 @@ catalogs:
     iceberg.rest-catalog.warehouse=polariscatalog
     iceberg.rest-catalog.security=OAUTH2
     iceberg.rest-catalog.oauth2.credential=root:secret
-    iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
     
-    # --- THIS IS THE FIX ---
-    # Tell Trino to NOT ask Polaris for credentials and use its own below.
+    # === THIS IS THE MISSING PIECE ===
+    # Explicitly define the OAuth2 scope for Polaris
+    iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
+
     iceberg.rest-catalog.vended-credentials-enabled=false
 
-    # Trino will now use these credentials directly to talk to MinIO
     fs.native-s3.enabled=true
     s3.path-style-access=true
     s3.endpoint=${S3_ENDPOINT_URL}
