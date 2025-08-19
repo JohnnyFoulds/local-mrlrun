@@ -143,6 +143,12 @@ kubectl -n data delete job mc-setup
 
 ---
 
+### 3.1) Create a new job specifically to add the STS policy
+
+Just use the `minio` default credentials, I don't have unlimited time to figure this out with another access key.
+
+---
+
 ## 4) Create a Polaris catalog `main`
 ```bash
 # Port-forward Polaris temporarily
