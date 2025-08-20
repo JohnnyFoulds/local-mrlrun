@@ -1,4 +1,4 @@
-# README — Polaris (Iceberg REST) + Trino on K3s with External MinIO
+# Polaris (Iceberg REST) + Trino on K3s with External MinIO
 
 > Assumptions
 > You ran: `set -a && source .env && set +a` with
