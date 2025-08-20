@@ -46,3 +46,4 @@ s3fs==2024.6.1
 scikit-learn==1.6.1
 huggingface-hub==0.34.4
 trino==0.336.0
+Jinja2==3.1.6
