@@ -1,217 +1,300 @@
-# 🚀 Minimal Trino + Iceberg + MinIO + Nessie on K3s
+# Polaris (Iceberg REST) + Trino on K3s with External MinIO
 
-This guide installs **Trino** with **Iceberg** backed by **MinIO** (from your existing `mlrun` namespace).
-Instead of Hive Metastore, we use the modern **Project Nessie REST catalog** + Postgres for metadata.
+> Assumptions
+> You ran: `set -a && source .env && set +a` with
+>
+> ```
+> S3_ENDPOINT_URL=http://192.168.1.184:30080
+> AWS_ACCESS_KEY_ID=dragon
+> AWS_SECRET_ACCESS_KEY=pass@word
+> ```
 
----
-
-## 0. Prerequisites
-
-* K3s cluster with `kubectl` and `helm` configured.
-* MinIO already running in namespace `mlrun`.
-  Service assumed: `minio-service.mlrun.svc.cluster.local:9000`
-* MinIO credentials available.
-
----
-
-## 1. Create a Namespace
+## 0) Create the namespace
 
 ```bash
-# load environment variables
-set -a && source .env && set +a
+echo $S3_ENDPOINT_URL
+echo $AWS_ACCESS_KEY_ID
+echo $AWS_SECRET_ACCESS_KEY
 
-kubectl create namespace data 
+kubectl create namespace data
 ```
 
 ---
 
-## 2. Install Postgres for Nessie Metadata
-
+## 1) MinIO credentials (from your env)
 ```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
-
-helm upgrade --install hms-pg bitnami/postgresql -n data \
-  --set auth.username=nessie \
-  --set auth.password=nessiepass \
-  --set auth.database=nessiedb
-
-kubectl -n data rollout status statefulset/hms-pg-postgresql
+kubectl -n data create secret generic minio-credentials \
+  --from-literal=MINIO_ACCESS_KEY="${AWS_ACCESS_KEY_ID}" \
+  --from-literal=MINIO_SECRET_KEY="${AWS_SECRET_ACCESS_KEY}"
 ```
 
 ---
 
-## 3. Deploy Project Nessie (Iceberg REST Catalog)
+## 2) Polaris (REST catalog)
 
 ```bash
-cat <<'EOF' | kubectl apply -n data -f -
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: nessie-env
-data:
-  QUARKUS_HTTP_PORT: "19120"
-  NESSIE_VERSION_STORE_TYPE: "JDBC"
-  QUARKUS_DATASOURCE_JDBC_URL: "jdbc:postgresql://hms-pg-postgresql.data.svc.cluster.local:5432/nessiedb"
-  QUARKUS_DATASOURCE_USERNAME: "nessie"
-  QUARKUS_DATASOURCE_PASSWORD: "nessiepass"
----
+cat <<EOF | kubectl apply -n data -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nessie
+  name: polaris
 spec:
   replicas: 1
-  selector: { matchLabels: { app: nessie } }
+  selector: { matchLabels: { app: polaris } }
   template:
-    metadata: { labels: { app: nessie } }
+    metadata:
+      labels: { app: polaris }
     spec:
       containers:
-        - name: nessie
-          image: ghcr.io/projectnessie/nessie:latest
-          ports: [{ containerPort: 19120, name: http }]
-          envFrom: [{ configMapRef: { name: nessie-env } }]
+      - name: polaris
+        image: apache/polaris:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8181
+        env:
+        - name: AWS_ACCESS_KEY_ID
+          value: "${AWS_ACCESS_KEY_ID}" 
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "${AWS_SECRET_ACCESS_KEY}" 
+        - name: AWS_REGION
+          value: dummy-region
+        - name: AWS_ENDPOINT_URL_S3
+          value: "${S3_ENDPOINT_URL}" 
+        - name: AWS_ENDPOINT_URL_STS
+          value: "${S3_ENDPOINT_URL}"                                         
+        - name: POLARIS_BOOTSTRAP_CREDENTIALS
+          value: default-realm,root,secret
+        - name: polaris.realm-context.realms
+          value: default-realm
+        - name: polaris.features.DROP_WITH_PURGE_ENABLED
+          value: "true"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nessie
+  name: polaris
 spec:
-  selector: { app: nessie }
+  type: ClusterIP
+  selector: { app: polaris }
   ports:
-    - name: http
-      port: 19120
-      targetPort: 19120
+  - name: api
+    port: 8181
+    targetPort: 8181
 EOF
 
-kubectl -n data rollout status deploy/nessie
+kubectl -n data rollout status deploy/polaris
 ```
 
 ---
 
-## 4. Store MinIO Credentials
+## 3) Create the `warehouse` bucket on your MinIO (idempotent)
 
 ```bash
-kubectl -n data create secret generic minio-credentials \
-  --from-literal=MINIO_ACCESS_KEY='dragon' \
-  --from-literal=MINIO_SECRET_KEY='pass@word' \
-  2>/dev/null || true
-```
+# Clean any previous helper pod
+kubectl -n data delete pod mc-setup 2>/dev/null || true
 
-## 5. Install Trino with Iceberg (Nessie)
-
-First, create a **ConfigMap** that defines the Iceberg catalog configuration pointing to Nessie and MinIO:
-
-```bash
-cat <<'EOF' | kubectl -n data apply -f -
-apiVersion: v1
-kind: ConfigMap
+cat <<EOF | kubectl apply -n data -f -
+apiVersion: batch/v1
+kind: Job
 metadata:
-  name: trino-catalog-iceberg
-  labels:
-    app.kubernetes.io/component: catalog
-    app.kubernetes.io/instance: trino
-data:
-  iceberg.properties: |
-    connector.name=iceberg
-    iceberg.catalog.type=nessie
-    iceberg.nessie-catalog.uri=http://nessie.data.svc.cluster.local:19120/api/v2
+  name: mc-setup
+  namespace: data
+spec:
+  template:
+    spec: # This is the PodSpec
+      containers:
+      - name: mc-setup
+        image: alpine:3.20
+        envFrom: # <-- CORRECT: envFrom is a child of the container
+          - secretRef:
+              name: minio-credentials
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            set -e
+            set -x # Prints each command before executing it (great for debugging)
 
-    # MinIO / S3
-    fs.native-s3.enabled=true
-    s3.endpoint=http://minio-service.mlrun.svc.cluster.local:9000
-    s3.path-style-access=true
-    s3.aws-access-key=${ENV:AWS_ACCESS_KEY_ID}
-    s3.aws-secret-key=${ENV:AWS_SECRET_ACCESS_KEY}
+            echo "INFO: Installing dependencies..."
+            apk add curl
+
+            echo "INFO: Downloading mc client..."
+            curl -L -o /usr/local/bin/mc https://dl.min.io/client/mc/release/linux-amd64/mc
+            chmod +x /usr/local/bin/mc
+            mc --version
+
+            echo "INFO: Setting up MinIO alias..."
+            mc alias set minio "${S3_ENDPOINT_URL}" "${AWS_ACCESS_KEY_ID}" "${AWS_SECRET_ACCESS_KEY}" --api s3v4
+
+            echo "INFO: Creating MinIO warehouse bucket if it doesn't exist..."
+            mc mb -p minio/warehouse || true
+
+            echo "INFO: Verifying bucket exists..."
+            mc ls minio/warehouse
+
+            echo "SUCCESS: MinIO setup complete."
+      restartPolicy: Never
+  backoffLimit: 1 # Optional: How many times to retry the job if it fails
 EOF
+
+# Show logs, then clean up
+kubectl -n data logs -f job/mc-setup
+kubectl -n data delete job mc-setup
 ```
 
-Now install Trino via Helm, mounting the catalog ConfigMap and exposing it on **9090** (not 8080):
+---
+
+### 3.1) Create a new job specifically to add the STS policy
+
+Just use the `minio` default credentials, I don't have unlimited time to figure this out with another access key.
+
+---
+
+## 4) Create a Polaris catalog `main`
+```bash
+# Port-forward Polaris temporarily
+kubectl -n data port-forward svc/polaris 8181:8181 >/tmp/polaris.pf.log 2>&1 & 
+PF_PID=$!; sleep 3
+
+# Get OAuth token
+ACCESS_TOKEN=$(curl -s -X POST \
+  'http://localhost:8181/api/catalog/v1/oauth/tokens' \
+  -d 'grant_type=client_credentials&client_id=root&client_secret=secret&scope=PRINCIPAL_ROLE:ALL' \
+  | jq -r '.access_token')
+echo "ACCESS_TOKEN: ${ACCESS_TOKEN:0:16}..."
+
+# Create the catalog using a clean JSON payload
+curl -i -X POST \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  'http://localhost:8181/api/management/v1/catalogs' \
+  -d @- <<EOF
+{
+  "name": "main",
+  "type": "INTERNAL",
+  "properties": {
+    "default-base-location": "s3://warehouse/",
+    "s3.endpoint": "${S3_ENDPOINT_URL}",
+    "s3.path-style-access": "true",
+    "s3.access-key-id": "${AWS_ACCESS_KEY_ID}",
+    "s3.secret-access-key": "${AWS_SECRET_ACCESS_KEY}",
+    "s3.region": "dummy-region"
+  },
+  "storageConfigInfo": {
+    "roleArn": "arn:aws:iam::000000000000:role/minio-polaris-role",
+    "storageType": "S3",
+    "allowedLocations": ["s3://warehouse/"]
+  }
+}
+EOF
+
+# List catalogs to verify it was created
+curl -s -H "Authorization: Bearer $ACCESS_TOKEN" \
+  'http://localhost:8181/api/management/v1/catalogs' | jq
+
+
+# Create a catalog admin role
+curl -X PUT http://localhost:8181/api/management/v1/catalogs/main/catalog-roles/catalog_admin/grants \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"grant":{"type":"catalog", "privilege":"CATALOG_MANAGE_CONTENT"}}'
+
+# Create a data engineer role
+curl -X POST http://localhost:8181/api/management/v1/principal-roles \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"principalRole":{"name":"data_engineer"}}'
+
+# Connect the roles
+curl -X PUT http://localhost:8181/api/management/v1/principal-roles/data_engineer/catalog-roles/main \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"catalogRole":{"name":"catalog_admin"}}'
+
+# Give root the data engineer role
+curl -X PUT http://localhost:8181/api/management/v1/principals/root/principal-roles \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --json '{"principalRole": {"name":"data_engineer"}}'
+
+# Check that the role was correctly assigned to the root principal:
+curl -X GET http://localhost:8181/api/management/v1/principals/root/principal-roles -H "Authorization: Bearer $ACCESS_TOKEN" | jq
+
+# Stop port-forward
+kill $PF_PID
+```
+
+---
+
+## 5) Install Trino (Helm) with All Corrections
 
 ```bash
-helm repo add trino https://trinodb.github.io/charts
-helm repo update
+# Add and update the Trino Helm repository
+helm repo add trino https://trinodb.github.io/charts/ && helm repo update
 
-cat <<'EOF' | helm upgrade --install trino trino/trino -n data -f -
+# Deploy Trino with a custom configuration values file piped via stdin
+cat <<EOF | helm upgrade --install trino trino/trino -n data -f -
 server:
   workers: 1
-  exchangeManager:
-    name: filesystem
-    baseDir:
-      - /tmp/trino-exchange
-
 service:
-  port: 9090
-
-# Mount MinIO creds so catalog can reference ${ENV:...}
-envFrom:
-  - secretRef:
-      name: minio-credentials
-
-# Define the Iceberg catalog (Nessie) correctly.
-# NOTE: default-warehouse-dir is REQUIRED by Trino’s Nessie integration.
-# See Trino+Nessie sample in official docs. :contentReference[oaicite:0]{index=0}
+  type: LoadBalancer
+  port: 9191
 catalogs:
   iceberg: |
     connector.name=iceberg
-    iceberg.catalog.type=nessie
-    iceberg.nessie-catalog.uri=http://nessie.data.svc.cluster.local:19120/api/v2
-    iceberg.nessie-catalog.ref=main
-    iceberg.nessie-catalog.default-warehouse-dir=s3://iceberg-warehouse   # <-- choose/ensure this bucket exists
+    iceberg.catalog.type=rest
+    iceberg.rest-catalog.uri=http://polaris.data.svc.cluster.local:8181/api/catalog/
+    iceberg.rest-catalog.warehouse=main
+    iceberg.rest-catalog.vended-credentials-enabled=false
+    iceberg.rest-catalog.security=OAUTH2
+    iceberg.rest-catalog.oauth2.credential=root:secret
+    iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
 
-    # S3/MinIO
+    # Explicitly enable the register_table procedure
+    iceberg.register-table-procedure.enabled=true
+    iceberg.add-files-procedure.enabled=true
+
+    # required for Trino to read from/write to S3
     fs.native-s3.enabled=true
-    s3.endpoint=http://minio-service.mlrun.svc.cluster.local:9000
-    s3.path-style-access=true
-    s3.ssl.enabled=false
-    s3.aws-access-key=${ENV:MINIO_ACCESS_KEY}
-    s3.aws-secret-key=${ENV:MINIO_SECRET_KEY}
+    s3.endpoint=${S3_ENDPOINT_URL}
+    s3.aws-access-key=${AWS_ACCESS_KEY_ID}
+    s3.aws-secret-key=${AWS_SECRET_ACCESS_KEY}
+    s3.region=dummy-region
+
+  tpch: |
+    connector.name=tpch
 EOF
 
 kubectl -n data rollout status deploy/trino-coordinator
+kubectl -n data get svc trino
 ```
 
 ---
 
-## 6. Verify with Trino CLI
+## 6) Smoke-test via Trino CLI (inside cluster)
 
-Forward Trino locally on **9090**:
+An interactive test, for example run `SHOW CATALOGS`.
 
 ```bash
-kubectl -n data port-forward svc/trino 9090:9090
+kubectl -n data run -it --rm trino-client --image=trinodb/trino:476 --restart=Never -- \
+  trino --server http://trino.data.svc.cluster.local:9191 --catalog iceberg
 ```
 
-Download the Trino CLI:
+Proper test:
+
+> I am not going to battle now to get this working, just use interactive with these commands.
 
 ```bash
-curl -LO https://repo1.maven.org/maven2/io/trino/trino-cli/476/trino-cli-476-executable.jar
-chmod +x trino-cli-476-executable.jar
-```
-
-Run a quick smoke test:
-
-```bash
-./trino-cli-476-executable.jar --server http://localhost:9090 --catalog iceberg <<'SQL'
+kubectl -n data run -it --rm trino-client --image=trinodb/trino:476 --restart=Never -- \
+  trino --server http://trino.data.svc.cluster.local:9191 --catalog iceberg <<'SQL'
 SHOW CATALOGS;
-CREATE SCHEMA IF NOT EXISTS iceberg.demo;
-CREATE TABLE IF NOT EXISTS iceberg.demo.smoke (id bigint, note varchar);
-INSERT INTO iceberg.demo.smoke VALUES (1,'ok');
-SELECT * FROM iceberg.demo.smoke;
+CREATE SCHEMA IF NOT EXISTS db;
+USE db;
+CREATE TABLE IF NOT EXISTS customers (
+  customer_id BIGINT,
+  first_name  VARCHAR,
+  last_name   VARCHAR,
+  email       VARCHAR
+);
+INSERT INTO customers VALUES
+  (1,'Rey','Skywalker','rey@resistance.org'),
+  (2,'Hermione','Granger','hermione@hogwarts.edu'),
+  (3,'Tony','Stark','tony@starkindustries.com');
+SELECT * FROM customers;
 SQL
 ```
-
-Expected output:
-
-```
- id | note 
-----+------
-  1 | ok
-```
-
----
-
-✅ At this point, Trino is correctly wired to Iceberg (via Nessie) and MinIO.
-Next step (Step 7) will be to ingest the Chicago Taxi dataset.
-
----
-
-Do you want me to go ahead and extend the README with **Step 7: Load Chicago Taxi dataset into Iceberg/MinIO**, so you can run queries immediately after this infra is up?
