@@ -247,6 +247,7 @@ catalogs:
 
     # Explicitly enable the register_table procedure
     iceberg.register-table-procedure.enabled=true
+    iceberg.add-files-procedure.enabled=true
 
     # required for Trino to read from/write to S3
     fs.native-s3.enabled=true

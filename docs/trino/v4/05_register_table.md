@@ -11,21 +11,47 @@ kubectl -n data run -it --rm trino-client --image=trinodb/trino:476 --restart=Ne
 
 ```sql
 -- Step 1: Create a schema (like a database) to hold your tables.
-CREATE SCHEMA IF NOT EXISTS lakehouse;
+CREATE SCHEMA IF NOT EXISTS lakehouse
+WITH (location = 's3://warehouse/lake/');
 
--- Step 2: Use the register_table procedure to create the metadata for your existing files.
--- This tells Iceberg to create a table named 'taxi_trips' in the 'lakehouse' schema,
--- located at your data path in MinIO.
-CALL iceberg.system.register_table(
-    schema_name => 'lakehouse',
-    table_name => 'taxi_trips',
-    table_location => 's3://warehouse/lake/taxi_trips/'
+-- Step 2: Create the table
+CREATE TABLE IF NOT EXISTS lakehouse.taxi_trips (
+    unique_key              VARCHAR      NOT NULL,  -- STRING REQUIRED
+    taxi_id                 VARCHAR      NOT NULL,  -- STRING REQUIRED
+    trip_start_timestamp    TIMESTAMP(3),           -- BigQuery TIMESTAMP (see note)
+    trip_end_timestamp      TIMESTAMP(3),
+    trip_seconds            INTEGER,
+    trip_miles              DOUBLE,                 -- FLOAT64 → DOUBLE
+    pickup_census_tract     BIGINT,
+    dropoff_census_tract    BIGINT,
+    pickup_community_area   INTEGER,
+    dropoff_community_area  INTEGER,
+    fare                    DOUBLE,
+    tips                    DOUBLE,
+    tolls                   DOUBLE,
+    extras                  DOUBLE,
+    trip_total              DOUBLE,
+    payment_type            VARCHAR,
+    company                 VARCHAR,
+    pickup_latitude         DOUBLE,
+    pickup_longitude        DOUBLE,
+    pickup_location         VARCHAR,
+    dropoff_latitude        DOUBLE,
+    dropoff_longitude       DOUBLE,
+    dropoff_location        VARCHAR
 );
 
--- Step 3: Verify that the table was created and the schema was inferred correctly.
+-- Step 3: Verify that the table was created and the schema is correct.
 DESCRIBE lakehouse.taxi_trips;
 
--- Step 4: Run your first queries!
+-- Step 4: Attach the existing parquet files (no rewrite)
+ALTER TABLE lakehouse.taxi_trips
+EXECUTE add_files(
+    location => 's3://warehouse/lake/taxi_trips/',
+    format   => 'PARQUET'
+);
+
+-- Step 5: Run your first queries!
 -- Count the total number of records across all files.
 SELECT count(*) FROM lakehouse.taxi_trips;
 
@@ -38,4 +64,7 @@ SELECT
     fare
 FROM lakehouse.taxi_trips 
 LIMIT 10;
+
+-- see files
+SELECT * FROM lakehouse."taxi_trips$files" LIMIT 20;
 ```
