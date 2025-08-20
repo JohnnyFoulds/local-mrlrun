@@ -232,7 +232,7 @@ cat <<EOF | helm upgrade --install trino trino/trino -n data -f -
 server:
   workers: 1
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 9191
 catalogs:
   iceberg: |
@@ -240,14 +240,19 @@ catalogs:
     iceberg.catalog.type=rest
     iceberg.rest-catalog.uri=http://polaris.data.svc.cluster.local:8181/api/catalog/
     iceberg.rest-catalog.warehouse=main
-    iceberg.rest-catalog.vended-credentials-enabled=true
+    iceberg.rest-catalog.vended-credentials-enabled=false
     iceberg.rest-catalog.security=OAUTH2
     iceberg.rest-catalog.oauth2.credential=root:secret
     iceberg.rest-catalog.oauth2.scope=PRINCIPAL_ROLE:ALL
 
+    # Explicitly enable the register_table procedure
+    iceberg.register-table-procedure.enabled=true
+
     # required for Trino to read from/write to S3
     fs.native-s3.enabled=true
     s3.endpoint=${S3_ENDPOINT_URL}
+    s3.aws-access-key=${AWS_ACCESS_KEY_ID}
+    s3.aws-secret-key=${AWS_SECRET_ACCESS_KEY}
     s3.region=dummy-region
 
   tpch: |
@@ -255,6 +260,7 @@ catalogs:
 EOF
 
 kubectl -n data rollout status deploy/trino-coordinator
+kubectl -n data get svc trino
 ```
 
 ---
