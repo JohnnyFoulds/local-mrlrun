@@ -1,7 +1,0 @@
-metadata:
-  name: debug-johannes
-kind: project
-spec:
-  source: ''
-  desired_state: online
-  conda: ''
