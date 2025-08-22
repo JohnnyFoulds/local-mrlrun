@@ -1,0 +1,19 @@
+# ---
+# conda create -n mlrun-tfdv python=3.10
+# conda install -n mlrun-tfdv -c conda-forge "libstdcxx-ng>=12" "libgcc-ng>=12"
+# conda activate mlrun-tfdv
+# pip install -r requirements_tfdv.txt
+# ---
+
+ipykernel==6.29.3
+ipywidgets==8.1.2
+mlrun==1.9.1
+pytest==8.2.2
+s3fs==2024.6.1
+tensorflow-data-validation==1.16.1
+
+numpy==1.26.4
+tensorflow==2.16.2
+pandas==1.4.4
+grpcio==1.74.0
+grpcio-tools==1.47.5
