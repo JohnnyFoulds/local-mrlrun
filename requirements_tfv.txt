@@ -1,0 +1,12 @@
+# ---
+# conda create -n mlrun-tfv python=3.10
+# conda activate mlrun-tfv
+# pip install -r requirements_tfv.txt
+# ---
+
+ipykernel==6.29.3
+ipywidgets==8.1.2
+mlrun==1.9.1
+pytest==8.2.2
+s3fs==2024.6.1
+tensorflow-data-validation==1.16.1
