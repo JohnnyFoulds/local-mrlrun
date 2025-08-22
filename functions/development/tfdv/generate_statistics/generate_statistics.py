@@ -32,6 +32,6 @@ def generate_statistics(
 
     # visualize the statistics
     context.logger.info("Generating statistics HTML")
-    context.log_artifact(item="statistics_html",
+    context.log_artifact(item="html",
                          body=get_statistics_html(statistics),
                          format="html")
