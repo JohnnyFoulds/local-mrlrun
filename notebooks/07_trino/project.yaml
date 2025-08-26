@@ -1,7 +1,7 @@
 metadata:
   name: trino-demo
-kind: project
 spec:
+  conda: ''
   desired_state: online
   source: ''
-  conda: ''
+kind: project
