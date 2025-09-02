@@ -25,6 +25,7 @@ sudo apt update && sudo apt install terraform
 ### terraform init
 
 ```bash
+# set -a && source ../../.env && set +a
 terraform init
 ```
 
@@ -35,3 +36,4 @@ terraform init
 - [Getting Started With Terraform on Huawei Cloud](https://www.youtube.com/watch?v=0uH9G3i_krM)
 - [Terraform Provider](https://registry.terraform.io/providers/huaweicloud/huaweicloud/latest/docs)
 - [Learn it from Zero: Terraform Basics on Huawei Public Cloud](https://medium.com/huawei-developers/%EF%B8%8F-learn-it-from-zero-terraform-basics-on-huawei-public-cloud-e28802dfe65a)
+- [Configuring the Network](https://support.huaweicloud.com/intl/en-us/usermanual-terraform/terraform_0008.html)
