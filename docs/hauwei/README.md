@@ -37,3 +37,4 @@ terraform init
 - [Terraform Provider](https://registry.terraform.io/providers/huaweicloud/huaweicloud/latest/docs)
 - [Learn it from Zero: Terraform Basics on Huawei Public Cloud](https://medium.com/huawei-developers/%EF%B8%8F-learn-it-from-zero-terraform-basics-on-huawei-public-cloud-e28802dfe65a)
 - [Configuring the Network](https://support.huaweicloud.com/intl/en-us/usermanual-terraform/terraform_0008.html)
+- [Push Image](https://github.com/MatheusFarias03/TerraformChallenge/blob/7359a2bfe654ac7fecf1963fd495ff7bedc15f62/TF_FILES/main.tf#L65)
