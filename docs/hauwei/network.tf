@@ -10,6 +10,10 @@ resource "huaweicloud_vpc_subnet" "subnet" {
   cidr       = "192.168.0.0/24"
   gateway_ip = "192.168.0.1"
   vpc_id     = huaweicloud_vpc.vpc.id
+
+  # DNS values are required for CCE node installation per Huawei docs
+  primary_dns   = "100.125.1.250"
+  secondary_dns = "100.125.21.250"
 }
 
 # Security Group

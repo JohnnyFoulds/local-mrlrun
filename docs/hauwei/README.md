@@ -9,9 +9,9 @@ You can use Terraform to orchestrate diverse cloud resources on HUAWEI CLOUD. Be
 Configure the region, AK, and SK as environment variables. For example:
 
 ```bash
-export HW_REGION_NAME="cn-north-1"
-export HW_ACCESS_KEY="my-access-key"
-export HW_SECRET_KEY="my-secret-key"
+export TF_VAR_region="$HW_REGION_NAME"
+export TF_VAR_access_key="$HW_ACCESS_KEY"
+export TF_VAR_secret_key="$HW_SECRET_KEY"
 ```
 
 ## Install Terraform
