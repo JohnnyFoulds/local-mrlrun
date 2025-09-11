@@ -13,6 +13,10 @@ output "swr_org_region" {
   description = "Region used for the SWR organization"
 }
 
+output "swr_login_server" {
+  value = huaweicloud_swr_organization.mlrun-swr-org.login_server
+}
+
 output "cluster_id" {
   value = huaweicloud_cce_autopilot_cluster.mlrun-cluster.id
 }
@@ -21,7 +25,21 @@ output "cluster_name"   {
     value = huaweicloud_cce_autopilot_cluster.mlrun-cluster.name
 }
 
+output "kubeconfig_path" {
+  value = local_sensitive_file.kubeconfig.filename
+}
 
-# output "kubeconfig_path" {
-#   value = local_file.kubeconfig.filename
-# }
+output "docker_server" {
+    value = local.docker_server
+}
+
+output "docker_username" {
+    value = local.docker_username
+    sensitive = true
+}
+
+# debug: terraform output -raw docker_password
+output "docker_password" {
+    value = local.docker_password
+    sensitive = true
+}

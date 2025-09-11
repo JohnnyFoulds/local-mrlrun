@@ -18,7 +18,12 @@ variable "env_prefix" {
   default     = "mlrun"
 }
 
-# variable "kubeconfig_path"  {
-#   type = string
-#   default = "kubeconfig_autopilot.yaml"
-# }
+variable "kubeconfig_path"  {
+  type = string
+  default = "kubeconfig_autopilot.yaml"
+}
+
+variable "kube_context" {
+  type = string
+  default = "external" # use "internal" if you don't expose EIP
+} 

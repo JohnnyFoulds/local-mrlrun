@@ -16,6 +16,19 @@ resource "huaweicloud_vpc_subnet" "subnet" {
   secondary_dns = "100.125.21.250"
 }
 
+# EIP Address
+resource "huaweicloud_vpc_eip" "mlrun-eip" {
+  publicip {
+    type = "5_bgp"
+  }
+  bandwidth {
+    name        = "${var.env_prefix}-eip-bandwidth"
+    size        = 8
+    share_type  = "PER"
+    charge_mode = "traffic"
+  }
+}
+
 # Security Group
 resource "huaweicloud_networking_secgroup" "secgroup" {
   name                 = "${var.env_prefix}-secgroup"

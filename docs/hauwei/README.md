@@ -29,6 +29,13 @@ sudo apt update && sudo apt install terraform
 terraform init
 ```
 
+# Access the Kubernetes Cluster
+
+```bash
+export KUBECONFIG=$(pwd)/kubeconfig_autopilot.yaml
+kubectl cluster-info
+```
+
 ## References
 
 - [Install Terraform](https://developer.hashicorp.com/terraform/install)

@@ -18,6 +18,8 @@ resource "huaweicloud_cce_autopilot_cluster" "mlrun-cluster" {
     }
   }
 
+  eip_id = huaweicloud_vpc_eip.mlrun-eip.id
+
   tags = {
     env  = "${var.env_prefix}"
   }

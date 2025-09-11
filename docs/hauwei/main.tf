@@ -13,3 +13,4 @@ resource "huaweicloud_swr_organization" "mlrun-swr-org" {
   name = "${var.env_prefix}-org"
 }
 
+
