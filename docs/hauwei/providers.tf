@@ -10,7 +10,7 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubernetes {
+  kubernetes = {
     config_path    = local_sensitive_file.kubeconfig.filename
     config_context = var.kube_context
   }

@@ -25,12 +25,10 @@ resource "kubernetes_secret" "registry_credentials" {
   }
 }
 
-# add he mlrun helm repo
-resource "helm_release" "mlrun_ce" {
-  name             = "mlrun-ce"
-  namespace        = "mlrun"
-  create_namespace = true
-
-  repository = "https://mlrun.github.io/ce"
-  chart      = "mlrun-ce"
-}
+# resource "helm_release" "mlrun_ce" {
+#   name             = "mlrun-ce"
+#   namespace        = "mlrun"
+#   create_namespace = false
+#   repository       = "https://mlrun.github.io/ce"
+#   chart            = "mlrun-ce"
+# }
