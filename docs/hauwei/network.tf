@@ -99,3 +99,30 @@ resource "huaweicloud_nat_snat_rule" "snat_all" {
   subnet_id      = huaweicloud_vpc_subnet.subnet.id
   floating_ip_id = huaweicloud_vpc_eip.mlrun_nat_eip.id
 }
+
+# -------------------------------
+# Endpoint for OBS (object storage) and SWR (container registry)
+# -------------------------------
+# swr endpoint
+data "huaweicloud_vpcep_public_services" "swr_service" {
+  service_name = "swr"
+}
+
+resource "huaweicloud_vpcep_endpoint" "swr_endpoint" {
+  service_id       = data.huaweicloud_vpcep_public_services.swr_service.services[0].id
+  vpc_id           = huaweicloud_vpc.vpc.id
+  network_id       = huaweicloud_vpc_subnet.subnet.id
+  enable_dns       = true
+}
+
+# # obs endpoint
+# data "huaweicloud_vpcep_public_services" "obs_service" {
+#   service_name = "obs"
+# }
+
+# resource "huaweicloud_vpcep_endpoint" "obs_endpoint" {
+#   service_id       = data.huaweicloud_vpcep_public_services.obs_service.services[0].id
+#   vpc_id           = huaweicloud_vpc.vpc.id
+#   network_id       = huaweicloud_vpc_subnet.subnet.id
+#   enable_dns       = true
+# }

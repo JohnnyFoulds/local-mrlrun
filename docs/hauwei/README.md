@@ -46,3 +46,4 @@ kubectl cluster-info
 - [Configuring the Network](https://support.huaweicloud.com/intl/en-us/usermanual-terraform/terraform_0008.html)
 - [Push Image](https://github.com/MatheusFarias03/TerraformChallenge/blob/7359a2bfe654ac7fecf1963fd495ff7bedc15f62/TF_FILES/main.tf#L65)
 - [Ingress-Nginx Controller](https://kubernetes.github.io/ingress-nginx/examples/auth/basic/)
+- [huaweicloud_vpcep_endpoint](https://gitlab.yun.shop/ydd-providers/terraform-provider-huaweicloud/-/blob/ae4c48ba950316a86676553fc462ae2fda082383/docs/resources/vpcep_endpoint.md)
