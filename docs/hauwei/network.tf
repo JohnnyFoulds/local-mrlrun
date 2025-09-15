@@ -32,6 +32,20 @@ resource "huaweicloud_vpc_eip" "mlrun_eip" {
     charge_mode = "traffic"
   }
 }
+
+# EIP for Ingress ELB
+resource "huaweicloud_vpc_eip" "mlrun_eip_ingress" {
+  publicip {
+    type = "5_bgp"
+  }
+  bandwidth {
+    name        = "${var.env_prefix}-eip-ingress-bandwidth"
+    size        = 8
+    share_type  = "PER"
+    charge_mode = "traffic"
+  }
+}
+
 # -------------------------------
 # Security Group
 # -------------------------------

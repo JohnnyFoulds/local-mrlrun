@@ -13,6 +13,7 @@ data "external" "swr_login_key" {
 # set the docker details as locals
 locals {
     docker_server = huaweicloud_swr_organization.mlrun-swr-org.login_server
+    docker_org    = huaweicloud_swr_organization.mlrun-swr-org.name
     docker_username = "${huaweicloud_swr_organization.mlrun-swr-org.region}@${var.access_key}"
     docker_password = data.external.swr_login_key.result.login_key
 }

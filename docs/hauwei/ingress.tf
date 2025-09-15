@@ -14,17 +14,23 @@ resource "huaweicloud_elb_loadbalancer" "mlrun_elb_ingress" {
   name               = "${var.env_prefix}-elb-ingress"
   vpc_id             = huaweicloud_vpc.vpc.id
   ipv4_subnet_id     = huaweicloud_vpc_subnet.subnet.ipv4_subnet_id
-  ipv4_eip_id        = huaweicloud_vpc_eip.mlrun_eip.id
+  ipv4_eip_id        = huaweicloud_vpc_eip.mlrun_eip_ingress.id
   availability_zone  = [data.huaweicloud_availability_zones.zones.names[0]]
 
   depends_on = [ huaweicloud_vpc_subnet.subnet, huaweicloud_vpc_eip.mlrun_eip ]
 }
 
+# create namespace for ingress-nginx
+resource "kubernetes_namespace" "ingress_nginx" {
+  metadata { name = "ingress-nginx" }
+  depends_on = [local_sensitive_file.kubeconfig]
+}
 
+# Install ingress-nginx via Helm chart
 resource "helm_release" "ingress_nginx" {
   name             = "ingress-nginx"
   namespace        = "ingress-nginx"
-  create_namespace = true
+  create_namespace = false 
   repository       = "https://kubernetes.github.io/ingress-nginx"
   chart            = "ingress-nginx"
   timeout          = 600
@@ -49,8 +55,6 @@ resource "helm_release" "ingress_nginx" {
     #     value = huaweicloud_vpc_eip.mlrun_eip.id
     # }
   ]
-
-#   depends_on = [ huaweicloud_vpc_eip.mlrun_eip ]
 }
 
 # Discover the ELB address provisioned for the controller Service
