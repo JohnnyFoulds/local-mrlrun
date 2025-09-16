@@ -55,6 +55,12 @@ resource "helm_release" "ingress_nginx" {
     #     value = huaweicloud_vpc_eip.mlrun_eip.id
     # }
   ]
+
+  depends_on = [
+    huaweicloud_vpcep_endpoint.swr_endpoint,
+    kubernetes_namespace.ingress_nginx,
+    huaweicloud_elb_loadbalancer.mlrun_elb_ingress
+  ]
 }
 
 # Discover the ELB address provisioned for the controller Service
