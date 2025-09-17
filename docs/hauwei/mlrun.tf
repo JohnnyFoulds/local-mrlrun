@@ -31,9 +31,18 @@ resource "helm_release" "mlrun_ce" {
   create_namespace  = false
   repository        = "https://mlrun.github.io/ce"
   chart             = "mlrun-ce"
-  wait              = true
-  timeout           = 1200
+  wait              = false 
+  #timeout           = 1200
   dependency_update = true
+
+  postrender = {
+    binary_path = "/bin/sh"
+    args = [
+      "-c",
+      # Force spec.storageClassName on every PVC
+      "SC=${var.kube_default_sc_name} yq eval -o=yaml '(. | select(.kind == \"PersistentVolumeClaim\").spec.storageClassName) = strenv(SC)' -"
+    ]
+  }
  
   set = [
      # docker registry settings
