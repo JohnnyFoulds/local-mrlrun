@@ -40,7 +40,7 @@ resource "helm_release" "mlrun_ce" {
     args = [
       "-c",
       # Force spec.storageClassName on every PVC
-      "SC=${var.kube_default_sc_name} yq eval -o=yaml '(. | select(.kind == \"PersistentVolumeClaim\").spec.storageClassName) = strenv(SC)' -"
+      "SC=${var.kube_default_sc_name} yq eval -o=yaml '(. | select(.kind == \"PersistentVolumeClaim\").spec.storageClassName) = strenv(SC) | (. | select(.kind == \"StatefulSet\").spec.volumeClaimTemplates[]?.spec.storageClassName) = strenv(SC)' -"
     ]
   }
  
