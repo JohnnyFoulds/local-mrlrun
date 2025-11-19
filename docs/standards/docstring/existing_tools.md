@@ -21,6 +21,10 @@ Notes
 - One-liners are for really obvious cases. They are not permissible for any function/method/class/module that takes parameters or has a return value.
 - Documentation strings are **mandatory** for all public and all non-public modules, functions, classes, and methods.
 
+## Docstring Format
+
+For consistencym the reStructuredText / Sphinx-style docstring format must be used throughout the codebase.
+
 ## MLRun
 
 The following examples is taken from [MLRun's Function Hub](https://github.com/mlrun/functions):
@@ -303,3 +307,7 @@ def train_model(
 
 - [PEP 257 – Docstring Conventions](https://peps.python.org/pep-0257/)
 - [MLRun Function Hub Repository](https://github.com/mlrun/functions)
+- [Napoleon - Marching toward legible docstrings](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/#id1)
+- [PEP 287 – reStructuredText Docstring Format](https://peps.python.org/pep-0287/)
+- [How to Write Docstrings in Python](https://realpython.com/how-to-write-docstrings-in-python/)
+- [Documenting Python Code: A Complete Guide](https://realpython.com/documenting-python-code/)
