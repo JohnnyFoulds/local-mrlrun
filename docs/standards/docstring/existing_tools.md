@@ -23,7 +23,54 @@ Notes
 
 ## Docstring Format
 
-For consistencym the reStructuredText / Sphinx-style docstring format must be used throughout the codebase.
+For consistency, all Python docstrings in this codebase must use the **reStructuredText / Sphinx-style field-list format**, i.e. `:param name: …`, `:returns: …`, `:raises …:` etc., as illustrated in the references below.
+
+- [Writing docstrings,” Sphinx-RTD Tutorial Documentation.](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/docstrings.html)
+- [How to Write Docstrings in Python: reStructuredText](https://realpython.com/how-to-write-docstrings-in-python/#restructuredtext-docstrings)
+
+Notes
+
+`:type name: …` is optional and may be omitted if the type can be inferred from type hints.
+
+Example
+
+```python
+from typing import Annotated, Optional
+
+import pandas as pd
+from sklearn.datasets import load_iris
+
+
+def training_data_loader(
+    as_frame: bool = True,
+    shuffle: bool = False,
+    random_state: Optional[int] = None,
+) -> Annotated[pd.DataFrame, "iris_dataset"]:
+    """
+    Load the iris dataset as a pandas dataframe for downstream steps.
+
+    :param as_frame:    If ``True``, return a :class:`pandas.DataFrame`. If ``False``,
+                        return the underlying array. The default is ``True``.
+    :param shuffle:     Whether to shuffle the dataset rows before returning.
+    :param random_state: Optional random seed used when shuffling. Has no effect
+                         if ``shuffle`` is ``False``.
+    :returns:           A dataframe containing the iris features and target. The
+                        dataset is also registered as the ``"iris_dataset"``
+                        output via the :class:`typing.Annotated` return type.
+    :rtype:             pandas.DataFrame
+    :raises ValueError: If ``random_state`` is provided while ``shuffle`` is ``False``.
+    """
+    iris = load_iris(as_frame=as_frame)
+
+    if random_state is not None and not shuffle:
+        raise ValueError("random_state has no effect when shuffle is False")
+
+    frame = iris["frame"]
+    if shuffle:
+        frame = frame.sample(frac=1.0, random_state=random_state).reset_index(drop=True)
+
+    return frame
+```
 
 ## MLRun
 
