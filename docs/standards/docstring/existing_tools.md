@@ -30,7 +30,8 @@ For consistency, all Python docstrings in this codebase must use the **reStructu
 
 Notes
 
-`:type name: …` is optional and may be omitted if the type can be inferred from type hints.
+- `:type name: …` is optional and may be omitted if the type can be inferred from type hints.
+- For all **tool functions** (public entry points intended for external use), the docstring **must include an** `example::` block that demonstrates typical usage of the function. The example should be minimal but complete and must be valid Python code.
 
 Example
 
@@ -42,25 +43,28 @@ from sklearn.datasets import load_iris
 
 
 def training_data_loader(
-    as_frame: bool = True,
     shuffle: bool = False,
     random_state: Optional[int] = None,
 ) -> Annotated[pd.DataFrame, "iris_dataset"]:
     """
     Load the iris dataset as a pandas dataframe for downstream steps.
 
-    :param as_frame:    If ``True``, return a :class:`pandas.DataFrame`. If ``False``,
-                        return the underlying array. The default is ``True``.
-    :param shuffle:     Whether to shuffle the dataset rows before returning.
-    :param random_state: Optional random seed used when shuffling. Has no effect
-                         if ``shuffle`` is ``False``.
-    :returns:           A dataframe containing the iris features and target. The
-                        dataset is also registered as the ``"iris_dataset"``
-                        output via the :class:`typing.Annotated` return type.
-    :rtype:             pandas.DataFrame
-    :raises ValueError: If ``random_state`` is provided while ``shuffle`` is ``False``.
+    example::
+
+        from my_project.data import training_data_loader
+
+        df = training_data_loader(shuffle=True, random_state=42)
+        print(df.head())
+
+    :param shuffle:       Whether to shuffle the dataset rows before returning.
+    :param random_state:  Optional random seed used when shuffling. Has no effect
+                          if ``shuffle`` is ``False``.
+    :returns:             A dataframe containing the iris features and target. The
+                          dataset is also registered as the ``"iris_dataset"``
+                          output via the :class:`typing.Annotated` return type.
+    :raises ValueError:   If ``random_state`` is provided while ``shuffle`` is ``False``.
     """
-    iris = load_iris(as_frame=as_frame)
+    iris = load_iris(as_frame=True)
 
     if random_state is not None and not shuffle:
         raise ValueError("random_state has no effect when shuffle is False")
