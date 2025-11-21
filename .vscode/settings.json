@@ -9,6 +9,7 @@
         "huaweicloud",
         "kubeconfig",
         "mlrun",
-        "secgroup"
+        "secgroup",
+        "vodacomsa"
     ]
 }
