@@ -32,6 +32,31 @@ Branching and merging rules:
 * Hotfixes should branch from `main` (e.g., `hotfix/<topic>`) and be merged back into both `main` and `development`.
 * UAT is treated as an environment in CI/CD (not a long-lived `uat` branch). Deployments to UAT and production must be managed via the pipeline and environment rules.
 
+### Code Reviews
+
+All changes must be reviewed via a merge request (MR). Code review exists to improve code health over time, not only to catch defects ([The Standard of Code Review](https://google.github.io/eng-practices/review/reviewer/standard.html)).
+
+Review requirements:
+
+1. Keep MRs small and focused on a single purpose. Large, mixed-change MRs may be rejected and split ([Small CLs](https://google.github.io/eng-practices/review/developer/small-cls.html); [Helping others review your changes](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/getting-started/helping-others-review-your-changes)).
+
+2. Do not request review before the MR pipeline passes. Only exceptions are early design feedback or draft MRs.
+
+3. Every MR must include:
+   * A brief summary of the change and intent.
+   * Linked issue/ticket (if applicable).
+   * Test evidence (what was run and the outcome).
+   * Any deployment or backward-compatibility notes (if applicable).
+
+4. Approval rules:
+   * At least one approval is required before merge.
+   * Higher-risk areas (shared libraries, orchestration, CI templates, security-sensitive changes) require two approvals or an explicit owner approval.
+   These rules should be enforced using GitLab approvals ([Merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/); [Merge request approval rules](https://docs.gitlab.com/user/project/merge_requests/approvals/rules/)).
+
+5. Reviews must address correctness, maintainability, readability, and test coverage. Style issues should be aligned to [PEP 8 -- Style Guide for Python Code](https://peps.python.org/pep-0008/). General review guidance should follow GitLab’s practices ([Code Review Guidelines](https://docs.gitlab.com/development/code_review/)).
+
+6. An MR may be merged only when all discussions are resolved and required approvals are satisfied.
+
 Follow these guidelines for source control:
 
 1. Commit messages must be clear and descriptive, following the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format:
@@ -82,3 +107,9 @@ vodacomsa/
 * [GitLab -- Protected branches](https://docs.gitlab.com/user/project/repository/branches/protected/)
 * [GitLab CI/CD -- Environments](https://docs.gitlab.com/ci/environments/)
 * [GitLab CI/CD -- Merge request pipelines](https://docs.gitlab.com/ci/pipelines/merge_request_pipelines/)
+* [GitLab -- Code Review Guidelines](https://docs.gitlab.com/development/code_review/)
+* [GitLab -- Merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
+* [GitLab -- Merge request approval rules](https://docs.gitlab.com/user/project/merge_requests/approvals/rules/)
+* [Google Engineering Practices -- The Standard of Code Review](https://google.github.io/eng-practices/review/reviewer/standard.html)
+* [Google Engineering Practices -- Small CLs](https://google.github.io/eng-practices/review/developer/small-cls.html)
+* [GitHub Docs -- Helping others review your changes](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/getting-started/helping-others-review-your-changes)
