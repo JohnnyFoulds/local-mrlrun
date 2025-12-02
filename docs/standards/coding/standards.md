@@ -52,7 +52,6 @@ Follow these guidelines for source control:
    - The code adheres to the coding standards defined in this document and in PEP 8 [1].
    - A merge request (MR) has been reviewed and approved in line with project governance.
 
-
 ## References
 
 - [PEP 8 -- Style Guide for Python Code](https://peps.python.org/pep-0008/)
